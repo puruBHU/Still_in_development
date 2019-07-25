@@ -262,35 +262,19 @@ class Dataloader(Sequence):
             current_batch_size = n - self.batch_size
         
         
-        
+        file_names = self.files[idx * current_batch_size : (idx + 1) * current_batch_size]
 #         print batch_x.shape
         
-        for m, files in enumerate(file_names):
+#        for m, files in enumerate(file_names):
             
-            image_path = os.path.join(self.root, 'images',files) + '.jpg'
-            label_path = os.path.join(self.root, 'labels', files) + '.bmp'
             
-            x = load_image(image_path, target_size=self.target_size, color_space=self.color_space)
-            y = load_image(label_path, target_size=self.target_size, color_space=None)
             
 
-            x,y = self.image_data_generator.random_transforms((x,y),seed=self.seed)
-    
-            if len(y.shape) != 3:
-                y = np.expand_dims(y, axis = 2)   
-            
-            # All pixels in labels should have value zero(non-skin) and one(skin)
-            y[y != 0] = 1.0
+              
             
             
-            # bring pixel values between zero and one
-            x = self.image_data_generator.standardize(x)
             
-            batch_x[m] = x
-            batch_y[m] = y
-            
-            
-        return (batch_x, batch_y)
+#        return (batch_x, batch_y)
     
     def on_epoch_end(self):
         'Shuffle the at the end of every epoch'
@@ -315,8 +299,12 @@ class Dataloader(Sequence):
         return data
     
     def GetImageSize(self):
-        dim = [int(f.text) for f in self.root.findall('./size/')] 
-        return {'height':dim[0],'width':dim[1], 'depth':dim[2]}
+        for f in self.root.findall('./size'):
+            height = int(f.find('height').text)
+            width  = int(f.find('width').text)
+            depth  = int(f.find('depth').text)
+        
+        return {'height':height,'width':width, 'depth':depth}
     
     def GetObjectClass(self):
         objects = []
@@ -325,4 +313,37 @@ class Dataloader(Sequence):
             
         return objects
     
+    def TransformBNDBoxes(self):
+        data = []
+        boxes   = self.GetBNDBoxes()
+        obj_class = self.GetObjectClass()
+        dim     = self.GetImageSize()
+        
+        image_height = dim['height']
+        image_width  = dim['width']
+        
+        for i, box in enumerate(boxes):
+            ''' Normalizing bounding box dimensions with image spatial resolution'''
+            xmin = box[0] / image_width
+            ymin = box[1] / image_height
+            
+            xmax = box[2] / image_width 
+            ymax = box[3] / image_height
+            
+            bndbox_height = ymax - ymin
+            bndbox_width  = xmax - xmin
+            
+            xc = xmin + bndbox_width  / 2
+            yc = ymin + bndbox_height / 2
+            
+            data.append([obj_class[i], xc, yc, bndbox_width, bndbox_height])
+            
+        return np.array(data)
     
+if __name__ == '__main__':
+    root = None
+    voc_image_path = None
+    voc_annotation_path = None
+    voc_trainval_path   = None
+    
+    loader = Dataloader()    
