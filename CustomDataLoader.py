@@ -143,17 +143,17 @@ class DataAugmentor(object):
         return (x,y)
     
     def flow_from_directory(self,
-                            root = None, 
-                            csv_file = None,
-                            target_size=(224,224),
+                            root        = None, 
+                            data_file   = None,
+                            target_size = (224,224),
                             color_space = None,
-                            batch_size =8,
-                            shuffle=False,
-                            data_format=None,
-                            seed=None):
+                            batch_size  = 8,
+                            shuffle     = False,
+                            data_format = None,
+                            seed        = None):
         return Dataloader(
                     root,
-                    csv_file,
+                    data_file,
                     self,
                     target_size = target_size,
                     color_space = color_space,
@@ -205,9 +205,9 @@ class Dataloader(Sequence):
     '''
     
     def __init__(self,
-                 root     = None,
+                 root      = None,
                  data_file = None,
-                 annotation_file =  None,
+#                 annotation_file =  None,
                  image_data_generator=None,
                  batch_size   = None, 
                  shuffle      = True,
@@ -223,18 +223,27 @@ class Dataloader(Sequence):
             data_format = K.image_data_format()
         
         self.root               = root 
-        self.root               = ET.parse(annotation_file).getroot()
+#        self.root               = ET.parse(annotation_file).getroot()
         self.image_data_generator =  image_data_generator
         self.batch_size         = batch_size
         self.shuffle            = shuffle
 #         self.classes            = nb_classes
-        self.target_size        = tuple(target_size)
+#        self.target_size        = target_size
         self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
         
         with open(data_file, 'r') as f:
             self.files = f.read().split()
+            
+        if isinstance(target_size, int):
+            self.target_size = (target_size, target_size)
+            
+        elif isinstance(target_size, tuple):
+            self.target_size = target_size
+            
+        else:
+            raise ValueError('Expected target_size to be either a int or a tuple')
         
         if data_format == 'channels_last':
             self.row_axis        = 1
@@ -253,7 +262,6 @@ class Dataloader(Sequence):
     
     
     def __getitem__(self, idx):
-        
 
         # total number of samples in the dataset
         n = len(self.files)
@@ -266,17 +274,34 @@ class Dataloader(Sequence):
         
         file_names = self.files[idx * current_batch_size : (idx + 1) * current_batch_size]
 #         print batch_x.shape
+        batch_x = []
+        batch_y = []
         
-#        for m, files in enumerate(file_names):
+        for m, files in enumerate(file_names):
+            print(files)
+            image_path       = self.root/'JPEGImages'/files
+#            annotation_path = self.root/'Annotations'/files
             
+            image_file        = image_path.with_suffix('.jpg')
+#            annotation_file   = annotation_path.with_suffix('.xml')
             
+            # Read the image
+            image = load_image(image_file, target_size = self.target_size)
+            image = np.array(image, dtype = np.float32)
             
-
-              
+            image = self.image_data_generator.standardize(image)
+            # Get the ground truth
+#            self.ReadVOCAnnotations(annotation_file = annotation_file)
             
+#            ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
+            batch_x.append(image)
+#            batch_y.append(ground_truth)
+        
+        batch_x = np.array(batch_x, dtype = np.float32)
+        
+        return batch_x, batch_y
             
-#        return (batch_x, batch_y)
     
     def on_epoch_end(self):
         'Shuffle the at the end of every epoch'
@@ -342,17 +367,20 @@ class Dataloader(Sequence):
         return np.array(data)
     
 if __name__ == '__main__':
-    root = Path.home()/'data'/'VOCdevkit/VOC2007'
-    voc_image_path = root/'JPEGImages'
+    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
+    voc_image_path      = root/'JPEGImages'
     voc_annotation_path = root/'Annotations'
     voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
     
-    annotation_file   = list(voc_annotation_path.glob('*.xml'))[999]
+    tester = DataAugmentor()
+    generator = tester.flow_from_directory(root        = root,
+                                           data_file   = voc_trainval_path,
+                                           target_size = 300,
+                                           batch_size  = 32,
+                                           shuffle = True)
     
-    loader = Dataloader(data_file = voc_trainval_path,
-                        target_size = (300,300),
-                        annotation_file = annotation_file,
-                        shuffle = True)
-
-    t = loader.TransformBNDBoxes()
-    print(t)    
+    sample = generator[0]
+    print(sample[0].shape)
+    print(sample[1])
+    
+    
