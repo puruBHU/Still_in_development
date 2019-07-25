@@ -18,6 +18,7 @@ from keras.utils import Sequence
 from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
+from random import shuffle
 
 
 VOC_CLASSES = (  # always index 0
@@ -206,6 +207,7 @@ class Dataloader(Sequence):
     def __init__(self,
                  root     = None,
                  data_file = None,
+                 annotation_file =  None,
                  image_data_generator=None,
                  batch_size   = None, 
                  shuffle      = True,
@@ -221,7 +223,7 @@ class Dataloader(Sequence):
             data_format = K.image_data_format()
         
         self.root               = root 
-       
+        self.root               = ET.parse(annotation_file).getroot()
         self.image_data_generator =  image_data_generator
         self.batch_size         = batch_size
         self.shuffle            = shuffle
@@ -278,10 +280,9 @@ class Dataloader(Sequence):
     
     def on_epoch_end(self):
         'Shuffle the at the end of every epoch'
-        self.f = self.files.copy()
        
         if self.shuffle == True:
-            self.f  = self.f.reindex(np.random.permutation(self.f.index))
+            shuffle(self.files) 
             
     def ReadVOCAnnotations(self, annotation_file):
         self.root = ET.parse(annotation_file).getroot()
@@ -336,14 +337,22 @@ class Dataloader(Sequence):
             xc = xmin + bndbox_width  / 2
             yc = ymin + bndbox_height / 2
             
-            data.append([obj_class[i], xc, yc, bndbox_width, bndbox_height])
+            data.append([VOC_CLASSES.index(obj_class[i]), xc, yc, bndbox_width, bndbox_height])
             
         return np.array(data)
     
 if __name__ == '__main__':
-    root = None
-    voc_image_path = None
-    voc_annotation_path = None
-    voc_trainval_path   = None
+    root = Path.home()/'data'/'VOCdevkit/VOC2007'
+    voc_image_path = root/'JPEGImages'
+    voc_annotation_path = root/'Annotations'
+    voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
     
-    loader = Dataloader()    
+    annotation_file   = list(voc_annotation_path.glob('*.xml'))[999]
+    
+    loader = Dataloader(data_file = voc_trainval_path,
+                        target_size = (300,300),
+                        annotation_file = annotation_file,
+                        shuffle = True)
+
+    t = loader.TransformBNDBoxes()
+    print(t)    
