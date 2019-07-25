@@ -222,7 +222,7 @@ class Dataloader(Sequence):
         if data_format is None:
             data_format = K.image_data_format()
         
-        self.root               = root 
+        self.root_path           = root 
 #        self.root               = ET.parse(annotation_file).getroot()
         self.image_data_generator =  image_data_generator
         self.batch_size         = batch_size
@@ -278,12 +278,12 @@ class Dataloader(Sequence):
         batch_y = []
         
         for m, files in enumerate(file_names):
-            print(files)
-            image_path       = self.root/'JPEGImages'/files
-#            annotation_path = self.root/'Annotations'/files
-            
+           
+            image_path       = self.root_path/'JPEGImages'/files
+            annotation_path  = self.root_path/'Annotations'/files
+                        
             image_file        = image_path.with_suffix('.jpg')
-#            annotation_file   = annotation_path.with_suffix('.xml')
+            annotation_file   = annotation_path.with_suffix('.xml')
             
             # Read the image
             image = load_image(image_file, target_size = self.target_size)
@@ -291,16 +291,16 @@ class Dataloader(Sequence):
             
             image = self.image_data_generator.standardize(image)
             # Get the ground truth
-#            self.ReadVOCAnnotations(annotation_file = annotation_file)
+            self.ReadVOCAnnotations(annotation_file = annotation_file)
             
-#            ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
+            ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
             batch_x.append(image)
-#            batch_y.append(ground_truth)
+            batch_y.append(ground_truth)
         
         batch_x = np.array(batch_x, dtype = np.float32)
         
-        return batch_x, batch_y
+        return (batch_x, batch_y)
             
     
     def on_epoch_end(self):
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     generator = tester.flow_from_directory(root        = root,
                                            data_file   = voc_trainval_path,
                                            target_size = 300,
-                                           batch_size  = 32,
+                                           batch_size  = 4,
                                            shuffle = True)
     
     sample = generator[0]
