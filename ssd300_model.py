@@ -167,12 +167,12 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv10_2_cls_score  = Reshape(target_shape = (-1, num_classes))(conv10_2_cls_score)
     conv11_2_cls_score  = Reshape(target_shape = (-1, num_classes))(conv11_2_cls_score)
     
-    conv4_3_loc = Reshape(target_shape = (-1, 4))(conv4_3_loc)
-    fc7_loc     = Reshape(target_shape = (-1, 4))(fc7_loc)
-    conv8_2_loc = Reshape(target_shape = (-1, 4))(conv8_2_loc)
-    conv9_2_loc = Reshape(target_shape = (-1, 4))(conv9_2_loc)
-    conv10_2_loc= Reshape(target_shape = (-1, 4))(conv10_2_loc)
-    conv11_2_loc= Reshape(target_shape = (-1, 4))(conv11_2_loc)
+    conv4_3_loc         = Reshape(target_shape = (-1, 4))(conv4_3_loc)
+    fc7_loc             = Reshape(target_shape = (-1, 4))(fc7_loc)
+    conv8_2_loc         = Reshape(target_shape = (-1, 4))(conv8_2_loc)
+    conv9_2_loc         = Reshape(target_shape = (-1, 4))(conv9_2_loc)
+    conv10_2_loc        = Reshape(target_shape = (-1, 4))(conv10_2_loc)
+    conv11_2_loc        = Reshape(target_shape = (-1, 4))(conv11_2_loc)
     
     cls_score = Concatenate(axis=1, name = 'classification_score')([conv4_3_cls_score, 
                                                                        fc7_cls_score,
@@ -190,7 +190,7 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     
     # Note add L2 Normalization
     
-    return Model(inputs = input_, outputs = [cls_score, loc])
+    return Model(inputs = input_, outputs = [cls_score,  loc])
 
 
 
