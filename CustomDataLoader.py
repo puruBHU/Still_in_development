@@ -362,12 +362,15 @@ class Dataloader(Sequence):
             xc = xmin + bndbox_width  / 2
             yc = ymin + bndbox_height / 2
             
-            data.append([VOC_CLASSES.index(obj_class[i]), xc, yc, bndbox_width, bndbox_height])
+            # Since class_id = 0 is reserved for the background, 1 is added to index to genereate 
+            # class_id for objects in the VOC dataset
+            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_width, bndbox_height])
             
         return np.array(data)
     
 if __name__ == '__main__':
-    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
+#    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
+    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
     voc_image_path      = root/'JPEGImages'
     voc_annotation_path = root/'Annotations'
     voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
