@@ -6,7 +6,8 @@ Created on Fri Jul 26 17:12:43 2019
 @author: Purnendu Mishra
 """
 from keras.models import Model
-from keras.layers import Input, MaxPooling2D, ZeroPadding2D, Reshape
+from keras.layers import Input, MaxPooling2D, ZeroPadding2D
+from keras.layers import Reshape, Concatenate, Conv2D
 from utility import conv_bn_relu
 from keras import backend as K
 
@@ -51,10 +52,10 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     x = conv_bn_relu(filters = 512, 
                      name = {'conv':'conv4_2', 'batch_norm':'bn4_2','activation':'relu_4_2'})(x)
     
-    conv4_3_out = conv_bn_relu(filters = 512, 
+    conv4_3 = conv_bn_relu(filters = 512, 
                      name = {'conv':'conv4_3', 'batch_norm':'bn4_3','activation':'relu_4_3'})(x)
     
-    x = MaxPooling2D(pool_size = (2,2), name='pool4')(conv4_3_out)
+    x = MaxPooling2D(pool_size = (2,2), name='pool4')(conv4_3)
     
     # Block 5
     x = conv_bn_relu(filters = 512, 
@@ -109,7 +110,7 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     
     
     # Calculate the spatial dimension of output layer
-    conv4_3_dim = K.int_shape(conv4_3_out)[1:-1]
+    conv4_3_dim = K.int_shape(conv4_3)[1:-1]
     fc7_dim     = K.int_shape(fc7)[1:-1]
     conv8_2_dim = K.int_shape(conv8_2)[1:-1]
     conv9_2_dim = K.int_shape(conv9_2)[1:-1]
@@ -117,13 +118,43 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
     
     
+    # The classification layer
+    conv4_3_cls_score = Conv2D(filters = anchors[0] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(conv4_3)
+    
+    fc7_cls_score     = Conv2D(filters = anchors[1] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(fc7)
+    
+    # The location Layer
+    conv4_3_loc       = Conv2D(filters = anchors[0] * 4, kernel_size=(3,3), activation = 'sigmoid',
+                               padding='same')(conv4_3)
     
     
-    return Model(inputs = input_, outputs = conv11_2)
+    fc7_features      = conv_bn_relu(filters = anchors[5] * (num_classes + 4), 
+                                     name= {'conv':'convfc7_features', 'batch_norm':'bfc7_features','activation':'relu_fc7_features'})(fc7)
+    conv8_2_features  = conv_bn_relu(filters = anchors[2] * (num_classes + 4), 
+                                     name= {'conv':'conv8_2_features', 'batch_norm':'b8_2_features','activation':'relu_8_2_features'})(conv8_2)
+    conv9_2_features  = conv_bn_relu(filters = anchors[3] * (num_classes + 4),
+                                     name= {'conv':'conv9_2_features', 'batch_norm':'b9_2_features','activation':'relu_9_2_features'})(conv9_2)
+    conv10_2_features = conv_bn_relu(filters = anchors[4] * (num_classes + 4),
+                                     name= {'conv':'conv10_2_features', 'batch_norm':'b10_2_features','activation':'relu_10_2_features'})(conv10_2)
+    conv11_2_features = conv_bn_relu(filters = anchors[5] * (num_classes + 4), 
+                                     name= {'conv':'conv11_2_features', 'batch_norm':'b11_2_features','activation':'relu_11_2_features'})(conv11_2)
+    
+    # class confidence layer
+    
+    
+    conv4_3_cls_score = Reshape(target_shape = (-1, num_classes))(conv4_3_cls_score)
+    
+    
+    
+    # Note add L2 Normalization
+    
+    return Model(inputs = input_, outputs = conv4_3_cls_score)
 
 
 
 if __name__ == '__main__':
     model = SSD300(input_shape = (300, 300, 3))
-    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
-#    model.summary()
+#    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
+    model.summary()
