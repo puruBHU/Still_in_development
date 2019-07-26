@@ -7,7 +7,7 @@ Created on Fri Jul 26 17:12:43 2019
 """
 from keras.models import Model
 from keras.layers import Input, MaxPooling2D, ZeroPadding2D
-from keras.layers import Reshape, Concatenate, Conv2D
+from keras.layers import Reshape, Add, Conv2D, Concatenate
 from utility import conv_bn_relu
 from keras import backend as K
 
@@ -118,43 +118,85 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
     
     
-    # The classification layer
+    # The class confidence score
     conv4_3_cls_score = Conv2D(filters = anchors[0] * num_classes, kernel_size=(3,3), activation = 'softmax',
                                padding='same')(conv4_3)
     
     fc7_cls_score     = Conv2D(filters = anchors[1] * num_classes, kernel_size=(3,3), activation = 'softmax',
                                padding='same')(fc7)
     
-    # The location Layer
-    conv4_3_loc       = Conv2D(filters = anchors[0] * 4, kernel_size=(3,3), activation = 'sigmoid',
+    conv8_2_cls_score  = Conv2D(filters = anchors[2] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(conv8_2)
+    
+    conv9_2_cls_score  = Conv2D(filters = anchors[3] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(conv9_2)
+    
+    conv10_2_cls_score  = Conv2D(filters = anchors[4] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(conv10_2)
+    
+    conv11_2_cls_score  = Conv2D(filters = anchors[5] * num_classes, kernel_size=(3,3), activation = 'softmax',
+                               padding='same')(conv11_2)
+    
+    # Get the bounding box locations
+    conv4_3_loc  = Conv2D(filters = anchors[0] * 4, kernel_size=(3,3), activation = 'linear',
                                padding='same')(conv4_3)
     
+    fc7_loc      = Conv2D(filters = anchors[1] * 4, kernel_size=(3,3), activation = 'linear',
+                               padding='same')(fc7)
     
-    fc7_features      = conv_bn_relu(filters = anchors[5] * (num_classes + 4), 
-                                     name= {'conv':'convfc7_features', 'batch_norm':'bfc7_features','activation':'relu_fc7_features'})(fc7)
-    conv8_2_features  = conv_bn_relu(filters = anchors[2] * (num_classes + 4), 
-                                     name= {'conv':'conv8_2_features', 'batch_norm':'b8_2_features','activation':'relu_8_2_features'})(conv8_2)
-    conv9_2_features  = conv_bn_relu(filters = anchors[3] * (num_classes + 4),
-                                     name= {'conv':'conv9_2_features', 'batch_norm':'b9_2_features','activation':'relu_9_2_features'})(conv9_2)
-    conv10_2_features = conv_bn_relu(filters = anchors[4] * (num_classes + 4),
-                                     name= {'conv':'conv10_2_features', 'batch_norm':'b10_2_features','activation':'relu_10_2_features'})(conv10_2)
-    conv11_2_features = conv_bn_relu(filters = anchors[5] * (num_classes + 4), 
-                                     name= {'conv':'conv11_2_features', 'batch_norm':'b11_2_features','activation':'relu_11_2_features'})(conv11_2)
+    conv8_2_loc  = Conv2D(filters = anchors[2] * 4, kernel_size=(3,3), activation = 'linear',
+                               padding='same')(conv8_2)
     
-    # class confidence layer
+    conv9_2_loc  = Conv2D(filters = anchors[3] * 4, kernel_size=(3,3), activation = 'linear',
+                               padding='same')(conv9_2)
     
+    conv10_2_loc  = Conv2D(filters = anchors[4] * 4, kernel_size=(3,3), activation = 'linear',
+                               padding='same')(conv10_2)
     
-    conv4_3_cls_score = Reshape(target_shape = (-1, num_classes))(conv4_3_cls_score)
+    conv11_2_loc  = Conv2D(filters = anchors[5] * 4, kernel_size=(3,3), activation = 'linear',
+                               padding='same')(conv11_2)
     
     
+   
+    # Reshape in 2D tensor
+    
+    conv4_3_cls_score   = Reshape(target_shape = (-1, num_classes))(conv4_3_cls_score)
+    fc7_cls_score       = Reshape(target_shape = (-1, num_classes))(fc7_cls_score)
+    conv8_2_cls_score   = Reshape(target_shape = (-1, num_classes))(conv8_2_cls_score)
+    conv9_2_cls_score   = Reshape(target_shape = (-1, num_classes))(conv9_2_cls_score)
+    conv10_2_cls_score  = Reshape(target_shape = (-1, num_classes))(conv10_2_cls_score)
+    conv11_2_cls_score  = Reshape(target_shape = (-1, num_classes))(conv11_2_cls_score)
+    
+    conv4_3_loc = Reshape(target_shape = (-1, 4))(conv4_3_loc)
+    fc7_loc     = Reshape(target_shape = (-1, 4))(fc7_loc)
+    conv8_2_loc = Reshape(target_shape = (-1, 4))(conv8_2_loc)
+    conv9_2_loc = Reshape(target_shape = (-1, 4))(conv9_2_loc)
+    conv10_2_loc= Reshape(target_shape = (-1, 4))(conv10_2_loc)
+    conv11_2_loc= Reshape(target_shape = (-1, 4))(conv11_2_loc)
+    
+    cls_score = Concatenate(axis=1, name = 'classification_score')([conv4_3_cls_score, 
+                                                                       fc7_cls_score,
+                                                                       conv8_2_cls_score,
+                                                                       conv9_2_cls_score,
+                                                                       conv10_2_cls_score,
+                                                                       conv11_2_cls_score])
+    
+    loc      = Concatenate(axis = 1, name = 'regression_layer')([conv4_3_loc,
+                                                                  fc7_loc,
+                                                                  conv8_2_loc,
+                                                                  conv9_2_loc,
+                                                                  conv10_2_loc,
+                                                                  conv11_2_loc])
     
     # Note add L2 Normalization
     
-    return Model(inputs = input_, outputs = conv4_3_cls_score)
+    return Model(inputs = input_, outputs = [cls_score, loc])
 
 
 
 if __name__ == '__main__':
     model = SSD300(input_shape = (300, 300, 3))
+    print(model.get_weights())
 #    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
+#    print(model.get_weights())
     model.summary()
