@@ -7,9 +7,10 @@ Created on Fri Jul 26 17:12:43 2019
 """
 from keras.models import Model
 from keras.layers import Input, MaxPooling2D, ZeroPadding2D
-from keras.layers import Reshape, Add, Conv2D, Concatenate
+from keras.layers import Reshape, Add, Conv2D, Concatenate, Lambda
 from utility import conv_bn_relu
 from keras import backend as K
+import tensorflow as tf
 
 def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes = 21):
     input_ = Input(shape = input_shape)
@@ -67,7 +68,8 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     x = conv_bn_relu(filters = 512, 
                      name = {'conv':'conv5_3', 'batch_norm':'bn5_3','activation':'relu_5_3'})(x)
     
-    x = MaxPooling2D(pool_size = (1,1), name = 'pool5')(x)
+    # Pool5 should be with pool_size = (3 x 3) and strides= (1,1)
+    x = MaxPooling2D(pool_size = (3,3),strides = (1,1), name = 'pool5')(x)
     
     #Auxilary Layer
     fc6 = conv_bn_relu(filters = 1024, 
@@ -107,20 +109,21 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv11_2 = conv_bn_relu(filters = 256, kernel_size = (3,3), strides = (1,1),  padding='valid',
                       name = {'conv':'conv11_2', 'batch_norm':'b11_2','activation':'relu_11_2'})(conv11_1)
     
-    
+    # L2 normlaize layer
+    conv4_3_norm = Lambda(lambda x:K.l2_normalize(x, axis = -1), name = 'l2_normalization')(conv4_3)
     
     # Calculate the spatial dimension of output layer
-    conv4_3_dim = K.int_shape(conv4_3)[1:-1]
-    fc7_dim     = K.int_shape(fc7)[1:-1]
-    conv8_2_dim = K.int_shape(conv8_2)[1:-1]
-    conv9_2_dim = K.int_shape(conv9_2)[1:-1]
+    conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
+    fc7_dim       = K.int_shape(fc7)[1:-1]
+    conv8_2_dim   = K.int_shape(conv8_2)[1:-1]
+    conv9_2_dim   = K.int_shape(conv9_2)[1:-1]
     conv10_2_dim  = K.int_shape(conv10_2)[1:-1]
     conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
     
     
     # The class confidence score
     conv4_3_cls_score = Conv2D(filters = anchors[0] * num_classes, kernel_size=(3,3), activation = 'softmax',
-                               padding='same')(conv4_3)
+                               padding='same')(conv4_3_norm)
     
     fc7_cls_score     = Conv2D(filters = anchors[1] * num_classes, kernel_size=(3,3), activation = 'softmax',
                                padding='same')(fc7)
@@ -139,7 +142,7 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     
     # Get the bounding box locations
     conv4_3_loc  = Conv2D(filters = anchors[0] * 4, kernel_size=(3,3), activation = 'linear',
-                               padding='same')(conv4_3)
+                               padding='same')(conv4_3_norm)
     
     fc7_loc      = Conv2D(filters = anchors[1] * 4, kernel_size=(3,3), activation = 'linear',
                                padding='same')(fc7)
@@ -195,8 +198,9 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
 
 
 if __name__ == '__main__':
-    model = SSD300(input_shape = (300, 300, 3))
-    print(model.get_weights())
-#    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
-#    print(model.get_weights())
-    model.summary()
+    with tf.device('/cpu:0'):
+        model = SSD300(input_shape = (300, 300, 3))
+#        print(model.get_weights())
+    #    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
+    #    print(model.get_weights())
+        model.summary()

@@ -11,16 +11,26 @@ import tensorflow as tf
 
 class SSDLoss(object):
     
-    def __init__(self, anchors, threshold):
+    def __init__(self, anchors, threshold, alpha):
         self.anchors   = anchors
         self.threshold = anchors
+        self.alpha     = alpha
         
-    def smoothL1Loss(self):
+    def smoothL1Loss(self,  y_true, y_pred):
         pass
     
-    def ClassificationLoss(self):
+    def ClassificationLoss(self, y_true, y_pred):
         pass
     
     def ComputeLoss(self, y_true, y_pred):
-        pass
+        
+        conf_loss = self.ClassificationLoss(y_true, y_pred)
+        loc_loss  = self.smoothL1Loss(y_true, y_pred)
+        
+        N = None
+        
+        loss = 1/N * (conf_loss + self.alpha * loc_loss)
+        
+        return loss
+        
 
