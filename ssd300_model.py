@@ -12,6 +12,8 @@ from utility import conv_bn_relu
 from keras import backend as K
 import tensorflow as tf
 
+from keras_l2normalize import L2Norm
+
 def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes = 21):
     input_ = Input(shape = input_shape)
     
@@ -110,7 +112,8 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
                       name = {'conv':'conv11_2', 'batch_norm':'b11_2','activation':'relu_11_2'})(conv11_1)
     
     # L2 normlaize layer
-    conv4_3_norm = Lambda(lambda x:K.l2_normalize(x, axis = -1), name = 'l2_normalization')(conv4_3)
+#    conv4_3_norm = Lambda(lambda x:K.l2_normalize(x, axis = -1), name = 'l2_normalization')(conv4_3)
+    conv4_3_norm = L2Norm(name = 'l2_normalization')(conv4_3)
     
     # Calculate the spatial dimension of output layer
     conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
