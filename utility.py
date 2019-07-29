@@ -47,50 +47,61 @@ def conv_bn_relu(**params):
 def point_form(boxes):
     """ Convert prior boxes to (xmin, ymin, xmax, ymax)
     """
-    xc  = boxes[0]
-    yc  = boxes[1]
-    
-    w   = boxes[2]
-    h   = boxes[3]
-    
-    xmin = xc - w/2
-    ymin = yc - h/2
-    
-    xmax = xmin + w
-    ymax = ymin + h
-    
-    return (xmin, ymin,xmax, ymax)
+    top    = boxes[:,:2] - boxes[:,2:] /2
+    bottom = boxes[:,:2] + boxes[:,2:]/2
+
+    return np.concatenate((top, bottom), axis=1)
 
 def center_form(boxes):
     """ Convert prior boxes to (cx, cy, w, h)
+    
+    xc = (xmin + xmax) / 2
+    yc = (ymin + ymax) / 2
     """
-    xmin = boxes[0]
-    ymin = boxes[1]
+    center_coordinates = (boxes[:,:2] + boxes[:,2:]) / 2
+    width_hegight      = (boxes[:,2:] - boxes[:,:2]) / 2
     
-    xmax = boxes[2]
-    ymax = boxes[3]
-    
-    w  = xmax - xmin
-    h  = ymax - ymin
-    
-    xc = xmin + w/2
-    yc = ymin + h/2
-    return (xc, yc, w, h)
+    return np.concatenate((center_coordinates, width_hegight), axis=1)
 
 def intersect(box_a, box_b):
-#    box_a = np.array(box_a)
-#    box_b = np.array(box_b)
 
-    max_x = max(0, max(box_a[:,0], box_b[:,0]))
-    max_y = max(0, max(box_a[:,1], box_b[:,1]))
+    """ We resize both tensors to [A,B,2] without new malloc:
+    [A,2] -> [A,1,2] -> [A,B,2]
+    [B,2] -> [1,B,2] -> [A,B,2]
+    Then we compute the area of intersect between box_a and box_b.
+    Args:
+      box_a: (tensor) bounding boxes, Shape: [A,4].
+      box_b: (tensor) bounding boxes, Shape: [B,4].
+    Return:
+      (tensor) intersection area, Shape: [A,B].
+    """
     
-    min_x = min(min(box_a[:,2], box_b[:,2]), 1)
-    min_y = min(min(box_a[:,3], box_b[:,3]), 1)
+    A = box_a.shape[0]
+    B = box_b.shape[0]
     
-    width  = min_x - max_x
-    height = min_y - max_y
+    box_a_xy_min = np.expand_dims(box_a[:,:2], axis=1)
+    box_a_xy_min = box_a_xy_min.repeat(B, axis = 1)
     
-    intersection = width * height
+    box_a_xy_max = np.expand_dims(box_a[:,2:], axis=1)
+    box_a_xy_max = box_a_xy_max.repeat(B, axis = 1)
+    
+    
+    box_b_xy_min = np.expand_dims(box_b[:,:2], axis=0)
+    box_b_xy_min = box_b_xy_min.repeat(A, axis = 0)
+    
+    box_b_xy_max = np.expand_dims(box_a[:,2:], axis=1)
+    box_b_xy_max = box_b_xy_max.repeat(A, axis = 0)
+    
+
+    
+    
+    max_xy = max(box_a_xy_min, box_b_xy_min)
+            
+    min_xy = min(box_a_xy_max, box_b_xy_max)
+    
+    tensor  = min_xy - max_xy
+        
+    intersection = tensor[:,:,0] * tensor[:,:,1]
     
     return intersection[0] # Areas of intersection
 
