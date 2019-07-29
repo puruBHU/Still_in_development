@@ -63,6 +63,7 @@ def center_form(boxes):
     
     return np.concatenate((center_coordinates, width_hegight), axis=1)
 
+
 def intersect(box_a, box_b):
 
     """ We resize both tensors to [A,B,2] without new malloc:
@@ -75,35 +76,35 @@ def intersect(box_a, box_b):
     Return:
       (tensor) intersection area, Shape: [A,B].
     """
+    box_a = np.array(box_a, dtype = np.float32)
+    box_b = np.array(box_b, dtype = np.float32) 
     
     A = box_a.shape[0]
     B = box_b.shape[0]
     
-    box_a_xy_min = np.expand_dims(box_a[:,:2], axis=1)
-    box_a_xy_min = box_a_xy_min.repeat(B, axis = 1)
+    box_a = np.expand_dims(box_a, axis = 1)
+    box_a = box_a.repeat(B, axis = 1)
+#     box_a = box_a.reshape(-1, 4)
     
-    box_a_xy_max = np.expand_dims(box_a[:,2:], axis=1)
-    box_a_xy_max = box_a_xy_max.repeat(B, axis = 1)
+    box_b = np.expand_dims(box_b, axis = 0)
+    box_b = box_b.repeat(A, axis = 0)
+#     box_b = box_b.reshape(-1, 4)
     
+    xy_min_a = box_a[:,:,:2]
+    xy_min_b = box_b[:,:,:2]
     
-    box_b_xy_min = np.expand_dims(box_b[:,:2], axis=0)
-    box_b_xy_min = box_b_xy_min.repeat(A, axis = 0)
+    xy_max_a = box_a[:,:,2:]
+    xy_max_b = box_b[:,:,2:]
     
-    box_b_xy_max = np.expand_dims(box_a[:,2:], axis=1)
-    box_b_xy_max = box_b_xy_max.repeat(A, axis = 0)
-    
+    max_xy   = np.maximum(xy_min_a, xy_min_b)    
+    min_xy   = np.minimum(xy_max_a, xy_max_b)
 
-    
-    
-    max_xy = max(box_a_xy_min, box_b_xy_min)
-            
-    min_xy = min(box_a_xy_max, box_b_xy_max)
-    
+  
     tensor  = min_xy - max_xy
-        
+       
     intersection = tensor[:,:,0] * tensor[:,:,1]
     
-    return intersection[0] # Areas of intersection
+    return intersection # Areas of intersection
 
 def jaccard(box_a, box_b):
     
