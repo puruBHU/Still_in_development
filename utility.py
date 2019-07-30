@@ -165,16 +165,23 @@ def match(truths      = None,
     
     best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
     best_prior_idx     = np.argmax(iou, axis =-1)
+    
+#    print(best_prior_overlap.shape)
+#    print(best_prior_idx.shape)
 
     best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
     best_truth_idx     = np.argmax(iou, axis = 0)
+    
+#    print(best_truth_overlap.shape)
+#    print(best_truth_idx.shape)
 
     for j in range(best_prior_idx.shape[0]):
         best_truth_idx[best_prior_idx[j]] = j
     
     matches = truths[best_truth_idx]
     conf    = labels[best_truth_idx]
-    conf[best_truth_overlap < threshold] = 0
+    print(conf.shape)
+#    conf[best_truth_overlap < threshold] = 0
     
     loc       = encode(matched=matches, priors=priors, variances=variance)
     
