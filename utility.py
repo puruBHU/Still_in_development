@@ -82,43 +82,49 @@ def intersect(box_a, box_b):
     A = box_a.shape[0]
     B = box_b.shape[0]
     
-    box_a = np.expand_dims(box_a, axis = 1)
-    box_a = box_a.repeat(B, axis = 1)
-#     box_a = box_a.reshape(-1, 4)
-    
-    box_b = np.expand_dims(box_b, axis = 0)
-    box_b = box_b.repeat(A, axis = 0)
-#     box_b = box_b.reshape(-1, 4)
-    
-    xy_min_a = box_a[:,:,:2]
-    xy_min_b = box_b[:,:,:2]
-    
-    xy_max_a = box_a[:,:,2:]
-    xy_max_b = box_b[:,:,2:]
-    
-    max_xy   = np.maximum(xy_min_a, xy_min_b)    
-    min_xy   = np.minimum(xy_max_a, xy_max_b)
 
-  
-    tensor  = min_xy - max_xy
-       
-    intersection = tensor[:,:,0] * tensor[:,:,1]
     
-    return intersection # Areas of intersection
+    min_xy = np.maximum(box_a[:,:2].reshape(A, 1, -1).repeat(B, axis = 1),
+                        box_b[:,:2].reshape(1, B, -1).repeat(A, axis = 0))
+    
+   
+    max_xy = np.minimum(box_a[:,2:].reshape(A, 1, -1).repeat(B, axis = 1),
+                        box_b[:,2:].reshape(1, B, -1).repeat(A, axis = 0))
+    
+    inter = np.clip((max_xy - min_xy), a_min = 0, a_max = None)
+    
+    return inter[:,:,0] * inter[:,:,1]
+   
+
 
 def jaccard(box_a, box_b):
     
     intersection = intersect(box_a, box_b)
+    print('intersection shape', intersection.shape)
+    
+    A = box_a.shape[0]
+    B = box_b.shape[0]
+    
+
     
     # area_box_a = (xmax - xmin) * (ymax - ymin)
     area_box_a  = (box_a[:,2] - box_a[:,0]) * (box_a[:,3] - box_a[:,1])
     
+    area_box_a = area_box_a.reshape(-1, 1)
+    area_box_a = area_box_a.repeat(B, axis = 1)
+    
+    # calculate areas of box B
     area_box_b  = (box_b[:,2] - box_b[:,0]) * (box_b[:,3] - box_b[:,1])
     
+    area_box_b = area_box_b.reshape(1,-1)
+    area_box_b = area_box_b.repeat(A, axis = 0)
+    
+    print(area_box_a.shape)
+    print(area_box_b.shape)
     union       = area_box_a + area_box_b - intersection
     
     iou          = intersection/ union
-    return iou[0]
+    return iou
 
 def match(truths      = None, 
           labels     = None, 
