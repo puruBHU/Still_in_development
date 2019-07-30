@@ -8,6 +8,7 @@ Created on Fri Jul 26 23:57:27 2019
 from keras import backend as K
 import tensorflow as tf
 from utility import match
+import numpy as np
 
 
 
@@ -34,6 +35,8 @@ class SSDLoss(object):
     
     def ComputeLoss(self, y_true, y_pred):
         
+        loc_data, conf_data =  y_pred
+        
         #Since y_pred is list, batch size will
         batch_size = len(y_pred)
         num_priors = self.anchors.shape[0]
@@ -53,13 +56,16 @@ class SSDLoss(object):
                   labels    = true_class_id, 
                   loc_t     = loc_t, 
                   conf_t    = conf_t,
-                  variance  = variance,
+                  variance  = self.variance,
                   threshold = self.threshold,
                   priors    = self.anchors)
-            
+         
+        positives = conf_t > 0
+        num_positives = np.sum(positives, axis = 1, keepdims = True)
         
         conf_loss = self.ClassificationLoss(y_true, y_pred)
         loc_loss  = self.smoothL1Loss(y_true, y_pred)
+        
         
         N = None
         
