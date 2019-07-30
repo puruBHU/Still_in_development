@@ -71,13 +71,13 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
                      name = {'conv':'conv5_3', 'batch_norm':'bn5_3','activation':'relu_5_3'})(x)
     
     # Pool5 should be with pool_size = (3 x 3) and strides= (1,1)
-    x = MaxPooling2D(pool_size = (3,3),strides = (1,1), name = 'pool5')(x)
+    x = MaxPooling2D(pool_size = (3,3),strides = (1,1), padding='same', name = 'pool5')(x)
     
     #Auxilary Layer
     fc6 = conv_bn_relu(filters = 1024, 
                       name = {'conv':'conv_fc6', 'batch_norm':'bn_fc6','activation':'relu_fc6'})(x)
     
-    fc7 = conv_bn_relu(filters = 1024, kernel_size = (1,1), stride= (2,2),
+    fc7 = conv_bn_relu(filters = 1024, kernel_size = (1,1), stride= (2,2), padding='same',
                       name = {'conv':'conv_fc7', 'batch_norm':'bn_fc7','activation':'relu_fc7'})(fc6)
     
     conv8_1 = conv_bn_relu(filters = 256, kernel_size = (1,1),
@@ -201,9 +201,9 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
 
 
 if __name__ == '__main__':
-    with tf.device('/cpu:0'):
-        model = SSD300(input_shape = (300, 300, 3))
+#    with tf.device('/cpu:0'):
+    model = SSD300(input_shape = (300, 300, 3))
 #        print(model.get_weights())
     #    model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name = True)
     #    print(model.get_weights())
-        model.summary()
+    model.summary()
