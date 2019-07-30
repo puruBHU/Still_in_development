@@ -15,8 +15,8 @@ from pathlib import Path
 import collections
 
 
-root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-
+#root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+root  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile = root/'ImageSets'/'Main'/'train.txt'
 voc_2007_images   = root/'JPEGImages'
 voc_2007_annotations = root/'Annotations'
@@ -52,6 +52,22 @@ sample = data[0]
 image, target = sample
 batch_size = image.shape[0]
 
+p = point_form(priors)
+
 for i in range(batch_size):
     t = point_form(target[i][:,1:])
-    a, b = intersect(t, priors)
+    label = target[i][:,0]
+    
+    iou = jaccard(t, p)
+
+best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
+best_prior_idx     = np.argmax(iou, axis =-1)
+
+best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
+best_truth_idx     = np.argmax(iou, axis = 0)
+
+for j in range(best_prior_idx.shape[0]):
+    best_truth_idx[best_prior_idx[j]] = j
+    
+matches = t[best_truth_idx]
+conf    = label[best_truth_idx]

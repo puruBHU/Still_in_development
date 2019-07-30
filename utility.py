@@ -100,8 +100,7 @@ def intersect(box_a, box_b):
 def jaccard(box_a, box_b):
     
     intersection = intersect(box_a, box_b)
-    print('intersection shape', intersection.shape)
-    
+
     A = box_a.shape[0]
     B = box_b.shape[0]
     
@@ -119,11 +118,10 @@ def jaccard(box_a, box_b):
     area_box_b = area_box_b.reshape(1,-1)
     area_box_b = area_box_b.repeat(A, axis = 0)
     
-    print(area_box_a.shape)
-    print(area_box_b.shape)
     union       = area_box_a + area_box_b - intersection
     
     iou          = intersection/ union
+    
     return iou
 
 def match(truths      = None, 
@@ -159,6 +157,31 @@ def match(truths      = None,
     overlaps = jaccard(truths, point_form(priors))
     
     return overlaps
+
+def encode(matched, priors, variances):
+    '''
+    Encode the variance from the priorbox layers inot the ground truth boxes 
+    we have macthed  (based on jaccard overlap) with the prior boxes
+    Args:
+        matched:  (tensor) coords of ground truth for each prior in point_form 
+                   shape = [num_priors, 4]
+       priors  : (tensor) priors boxes in center-offset form 
+                   shape = [num_priors, 4]
+       variance: list(float) Variance of prior boxes
+
+    Returns:
+        encoded boxes: (tensor) shape = [num_priors, 4]
+    '''
+    g_cxcy = (matched[:,:2] + matched[:,:2])/2 - priors[:,:2]
+    
+    # encoded variance
+    g_cxcy /= (variances[0] * priors[:,2:])
+    
+    # match width/height with priors width and height
+    g_wh  = (matched[:,2:] - matched[:,:2]) / priors[:,2:]
+    g_wh  = np.log(g_wh) / variances[1]
+    
+    return np.concatenate((g_cxcy, g_wh), axis = -1)
 
 def non_maximum_supression():
     pass
