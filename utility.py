@@ -137,6 +137,9 @@ def match(truths      = None,
     encode the bounding boxes, then return the matched indices correspoding to both confidence 
     and location predictions.
     
+    Both Truth and Priors are in the form (cx, cy, w, h)
+    Convert to form (xmin, ymin,xmax, ymax) before getting IOU
+    
     Arguments:
         threshold: (float) The overlap threshold used when matching boxes
         truth    : (tensor) Ground truth boxes, sahep [num_obj, num_priors]
@@ -154,11 +157,32 @@ def match(truths      = None,
             1) location 
             2) cofidence predcition
     """
-    overlaps = jaccard(truths, point_form(priors))
+    # Ground truth are  in form (xc, yc, w, h)
+    # convert it to form (xmin, ymin, xmax, ymax)
+    truths = point_form(truths)
     
-    return overlaps
+    iou = jaccard(truths, point_form(priors))
+    
+    best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
+    best_prior_idx     = np.argmax(iou, axis =-1)
 
-def encode(matched, priors, variances):
+    best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
+    best_truth_idx     = np.argmax(iou, axis = 0)
+
+    for j in range(best_prior_idx.shape[0]):
+        best_truth_idx[best_prior_idx[j]] = j
+    
+    matches = truths[best_truth_idx]
+    conf    = labels[best_truth_idx]
+    conf[best_truth_overlap < threshold] = 0
+    
+    loc       = encode(matched=matches, priors=priors, variances=variance)
+    
+    loc_t[idx]  = loc
+    conf_t[idx] = conf
+    
+
+def encode(matched = None, priors = None, variances = [0.1, 0.2]):
     '''
     Encode the variance from the priorbox layers inot the ground truth boxes 
     we have macthed  (based on jaccard overlap) with the prior boxes
