@@ -180,13 +180,15 @@ def match(truths      = None,
     
     matches = truths[best_truth_idx]
     conf    = labels[best_truth_idx]
-    print(conf.shape)
-#    conf[best_truth_overlap < threshold] = 0
+
+    conf[best_truth_overlap < threshold] = 0
     
     loc       = encode(matched=matches, priors=priors, variances=variance)
     
     loc_t[idx]  = loc
     conf_t[idx] = conf
+    
+    return iou, loc_t, conf_t
     
 
 def encode(matched = None, priors = None, variances = [0.1, 0.2]):
