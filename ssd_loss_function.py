@@ -60,20 +60,23 @@ class SSDLoss(object):
                   threshold = self.threshold,
                   priors    = self.anchors)
          
-        positives = conf_t > 0
+        positives     = conf_t > 0
         num_positives = np.sum(positives, axis = 1, keepdims = True)
         
         pos_idx = positives.reshape(positives.shape[0], positives.shape[1], 1).repeat(4, axis=-1)
         
         loc_p = loc_data[pos_idx].reshape(-1,4)
         loc_t = loc_t[pos_idx].reshape(-1,4)
-        print(loc_p.shape)
-        print(loc_t.shape)
+#        print(loc_p.shape)
+#        print(loc_t.shape)
         
        
         loc_t = K.cast_to_floatx(loc_t)
         loc_p = K.cast_to_floatx(loc_p)
         loc_loss  = self.smoothL1Loss(y_true = loc_t, y_pred = loc_p)
+        
+        batch_conf = conf_data.reshape(-1, self.num_classes)
+        print(batch_conf.shape)
   
 #        N = None
 #        
