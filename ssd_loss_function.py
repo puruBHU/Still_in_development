@@ -7,7 +7,7 @@ Created on Fri Jul 26 23:57:27 2019
 """
 from keras import backend as K
 import tensorflow as tf
-from utility import match
+from utility import match, gather, log_sum_exp
 import numpy as np
 from keras.utils import to_categorical
 
@@ -19,6 +19,7 @@ class SSDLoss(object):
                  threshold, 
                  num_classes = 21, 
                  alpha = 1.0,
+                 neg_pos = 3,
                  variance = [0.1, 0.2]):
         
         self.anchors   = anchors
@@ -26,12 +27,13 @@ class SSDLoss(object):
         self.alpha     = alpha
         self.num_classes = num_classes
         self.variance    = variance
+        self.negpos_ratio = neg_pos
         
     def smoothL1Loss(self,  y_true, y_pred):
         return tf.losses.huber_loss(labels = y_true, predictions=y_pred)
     
-    def ClassificationLoss(self, y_true, y_pred):
-        return K.sparse_categorical_crossentropy(target = y_true, output = y_pred)
+    def classificationLoss(self, y_true, y_pred):
+        return K.categorical_crossentropy(target = y_true, output = y_pred)
     
     def ComputeLoss(self, y_true, y_pred):
         
@@ -62,6 +64,7 @@ class SSDLoss(object):
          
         positives     = conf_t > 0
         num_positives = np.sum(positives, axis = 1, keepdims = True)
+#        print(positives.shape)
         
         pos_idx = positives.reshape(positives.shape[0], positives.shape[1], 1).repeat(4, axis=-1)
         
@@ -76,7 +79,46 @@ class SSDLoss(object):
         loc_loss  = self.smoothL1Loss(y_true = loc_t, y_pred = loc_p)
         
         batch_conf = conf_data.reshape(-1, self.num_classes)
-        print(batch_conf.shape)
+        index      = conf_t.reshape(-1, 1).astype('int')
+        
+        loss_c     = log_sum_exp(batch_conf) - gather(batch_conf, 1, index)
+        
+        # Hard Negative Mining
+        loss_c     = loss_c.reshape(batch_size, -1)
+        loss_c[positives] = 0
+        
+        loss_idx = np.argsort(loss_c, axis = -1)
+        loss_idx = np.flip(loss_idx,  axis = -1)
+        
+        idx_rank = np.argsort(loss_idx, axis=1)
+        
+        num_neg = np.clip(self.negpos_ratio * num_positives, a_min = None, a_max = positives.shape[1] - 1)
+        num_neg = num_neg.repeat(num_priors, axis=-1)
+        
+        
+        neg = idx_rank < num_neg
+       
+        pos_idx = positives.reshape(positives.shape[0], positives.shape[1], 1).repeat(self.num_classes, axis=-1)
+        neg_idx = neg.reshape(neg.shape[0], neg.shape[1], 1).repeat(self.num_classes, axis=-1)
+        
+#        print(pos_idx.shape)
+#        print(neg_idx.shape)
+        
+        # Predicted confidence
+        conf_p = conf_data[pos_idx + neg_idx]
+        conf_p = conf_p.reshape(-1, self.num_classes)
+        
+        # Transform target confidence in one-hot form
+        
+        conf_t = to_categorical(conf_t, self.num_classes)
+        conf_target = conf_t[pos_idx + neg_idx]
+        
+#        conf_p = K.cast_to_floatx(conf_p)
+#        conf_target = K.cast_to_floatx(conf_target)
+        
+        loss_confidence = self.classificationLoss(y_true = conf_target, y_pred = conf_p )
+        
+
   
 #        N = None
 #        
@@ -85,6 +127,6 @@ class SSDLoss(object):
 #        if N == 0:
 #            loss = 0
         
-        return loc_loss, conf_t
+        return loc_loss, loss_confidence
         
 

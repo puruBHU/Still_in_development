@@ -65,7 +65,7 @@ testloader = DataAugmentor()
 data       = testloader.flow_from_directory(root = root,
                                             data_file=voc_2007_datafile,
                                             target_size=300,
-                                            batch_size = 10,
+                                            batch_size = 4,
                                             shuffle    = True
                                             )
 
@@ -159,7 +159,14 @@ prediction = model.predict(images)
 
 #pred = K.get_value(prediction[0])
 
-loss, conf_t = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
+loss_loc, loss_conf = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
 
-with tf.Session() as sess:
-    print('Loss: ',sess.run(loss))
+#a = np.sort(loss_c, axis=-1)
+#b = np.argsort(loss_c, axis=-1)
+#conf_data = prediction[0]
+#batch_conf = conf_data.reshape(-1, 21)
+
+
+
+#with tf.Session() as sess:
+#    print('Loss: ',sess.run(loss))

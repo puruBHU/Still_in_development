@@ -217,8 +217,42 @@ def encode(matched = None, priors = None, variances = [0.1, 0.2]):
     return np.concatenate((g_cxcy, g_wh), axis = -1)
 
 def log_sum_exp(x):
-    x_max = np.max(x, axis=1)
+    x_max = np.max(x)
     return np.log(np.sum(np.exp(x - x_max), axis=1, keepdims=True)) + x_max
+
+def gather(self, dim, index):
+    """
+    Gathers values along an axis specified by ``dim``.
+
+    For a 3-D tensor the output is specified by:
+        out[i][j][k] = input[index[i][j][k]][j][k]  # if dim == 0
+        out[i][j][k] = input[i][index[i][j][k]][k]  # if dim == 1
+        out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
+
+    Parameters
+    ----------
+    dim:
+        The axis along which to index
+    index:
+        A tensor of indices of elements to gather
+
+    Returns
+    -------
+    Output Tensor
+    """
+    idx_xsection_shape = index.shape[:dim] + \
+        index.shape[dim + 1:]
+    self_xsection_shape = self.shape[:dim] + self.shape[dim + 1:]
+    if idx_xsection_shape != self_xsection_shape:
+        raise ValueError("Except for dimension " + str(dim) +
+                         ", all dimensions of index and self should be the same size")
+    if index.dtype != np.dtype('int_'):
+        raise TypeError("The values of index must be integers")
+    data_swaped = np.swapaxes(self, 0, dim)
+    index_swaped = np.swapaxes(index, 0, dim)
+    gathered = np.choose(index_swaped, data_swaped)
+    return np.swapaxes(gathered, 0, dim)
+
 def non_maximum_supression():
     pass
 
