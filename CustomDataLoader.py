@@ -19,6 +19,7 @@ from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
+from utility import *
 
 
 VOC_CLASSES = (  # always index 0
@@ -145,23 +146,27 @@ class DataAugmentor(object):
     def flow_from_directory(self,
                             root        = None, 
                             data_file   = None,
-                            target_size = (224,224),
-                            color_space = None,
+                            target_size = (300, 300),
+#                            color_space = None,
                             batch_size  = 8,
+                            num_classes = 21,
                             shuffle     = False,
                             data_format = None,
-                            seed        = None):
+                            seed        = None,
+                            priors      = None):
         return Dataloader(
                     root,
                     data_file,
                     self,
                     target_size = target_size,
-                    color_space = color_space,
+#                    color_space = color_space,
                     batch_size  = batch_size,
+                    num_classes = num_classes,
                     shuffle     = shuffle,
                     data_format = self.data_format,
-                    seed        = seed
-                     )
+                    seed        = seed,
+                    priors      = priors
+                    )
     
     def standardize(self,x):
         """Apply the normalization configuration to a batch of inputs.
@@ -207,15 +212,15 @@ class Dataloader(Sequence):
     def __init__(self,
                  root      = None,
                  data_file = None,
-#                 annotation_file =  None,
                  image_data_generator=None,
                  batch_size   = None, 
                  shuffle      = True,
                  target_size  = None,
-                 color_space  = None, 
+#                 color_space  = None, 
                  data_format  = 'channel_last',
-#                  nb_classes   = 2,
-                 seed = None):
+                 num_classes  = 21,
+                 seed         = None,
+                 priors       = None):
         
 #         super(Dataloader, self).__init__(self)
         
@@ -223,15 +228,15 @@ class Dataloader(Sequence):
             data_format = K.image_data_format()
         
         self.root_path           = root 
-#        self.root               = ET.parse(annotation_file).getroot()
         self.image_data_generator =  image_data_generator
         self.batch_size         = batch_size
         self.shuffle            = shuffle
-#         self.classes            = nb_classes
-#        self.target_size        = target_size
-        self.color_space        = color_space
+        self.num_classes        = num_classes
+        self.target_size        = target_size
+#        self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
+        self.priors             = priors
         
         with open(data_file, 'r') as f:
             self.files = f.read().split()
@@ -249,13 +254,11 @@ class Dataloader(Sequence):
             self.row_axis        = 1
             self.col_axis        = 2
             self.channel_axis    = 3
-            self.image_shape = self.target_size + (3,)
-            self.label_shape = self.target_size + (1,)
-        
-        
+            self.image_shape     = self.target_size + (3,)
+            
+         
         self.on_epoch_end()
-        
-#         print self.files.head()
+
         
     def __len__(self):
         return int(np.ceil(len(self.files) / float(self.batch_size)))
@@ -277,7 +280,12 @@ class Dataloader(Sequence):
         batch_x = []
         batch_y = []
         
+        num_priors = self.priors.shape[0]
+        
         for m, files in enumerate(file_names):
+            
+            loc_t           = np.zeros(shape = (num_priors, 4), dtype = np.float32)
+            conf_t          = np.zeros(shape = (num_priors,), dtype = np.float32)
            
             image_path       = self.root_path/'JPEGImages'/files
             annotation_path  = self.root_path/'Annotations'/files
@@ -294,6 +302,8 @@ class Dataloader(Sequence):
             self.ReadVOCAnnotations(annotation_file = annotation_file)
             
             ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
+            
+            
             
             batch_x.append(image)
             batch_y.append(ground_truth)

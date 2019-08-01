@@ -74,6 +74,7 @@ sample = data[0]
 images, targets = sample
 
 images /= 255.0
+
 #batch_size = image.shape[0]
 #
 #p = point_form(priors)

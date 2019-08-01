@@ -5,6 +5,7 @@ Created on Wed Jul 10 14:10:11 2019
 
 @author: Purnendu Mishra
 """
+
 from keras.layers import Conv2D, SeparableConv2D, Activation
 from keras.layers import BatchNormalization
 from keras.initializers import he_normal

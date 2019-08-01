@@ -116,12 +116,12 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv4_3_norm = L2Norm(name = 'l2_normalization')(conv4_3)
     
     # Calculate the spatial dimension of output layer
-    conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
-    fc7_dim       = K.int_shape(fc7)[1:-1]
-    conv8_2_dim   = K.int_shape(conv8_2)[1:-1]
-    conv9_2_dim   = K.int_shape(conv9_2)[1:-1]
-    conv10_2_dim  = K.int_shape(conv10_2)[1:-1]
-    conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
+#    conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
+#    fc7_dim       = K.int_shape(fc7)[1:-1]
+#    conv8_2_dim   = K.int_shape(conv8_2)[1:-1]
+#    conv9_2_dim   = K.int_shape(conv9_2)[1:-1]
+#    conv10_2_dim  = K.int_shape(conv10_2)[1:-1]
+#    conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
     
     
     # The class confidence score
@@ -181,18 +181,18 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv11_2_loc        = Reshape(target_shape = (-1, 4))(conv11_2_loc)
     
     cls_score = Concatenate(axis=1, name = 'classification_score')([conv4_3_cls_score, 
-                                                                       fc7_cls_score,
-                                                                       conv8_2_cls_score,
-                                                                       conv9_2_cls_score,
-                                                                       conv10_2_cls_score,
-                                                                       conv11_2_cls_score])
+                                                                    fc7_cls_score,
+                                                                    conv8_2_cls_score,
+                                                                    conv9_2_cls_score,
+                                                                    conv10_2_cls_score,
+                                                                    conv11_2_cls_score])
     
     loc      = Concatenate(axis = 1, name = 'regression_layer')([conv4_3_loc,
-                                                                  fc7_loc,
-                                                                  conv8_2_loc,
-                                                                  conv9_2_loc,
-                                                                  conv10_2_loc,
-                                                                  conv11_2_loc])
+                                                                 fc7_loc,
+                                                                 conv8_2_loc,
+                                                                 conv9_2_loc,
+                                                                 conv10_2_loc,
+                                                                 conv11_2_loc])
     
     # Note add L2 Normalization
     
