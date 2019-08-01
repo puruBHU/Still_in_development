@@ -39,8 +39,8 @@ from keras.losses import categorical_crossentropy
 
 
  
-#root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+#root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
 
 voc_2007_images      = root/'JPEGImages'
@@ -68,15 +68,17 @@ testloader = DataAugmentor()
 data       = testloader.flow_from_directory(root = root,
                                             data_file=voc_2007_datafile,
                                             target_size=300,
-                                            batch_size = 4,
-                                            shuffle    = True
+                                            batch_size = 32,
+                                            shuffle    = True,
+                                            num_classes = 21,
+                                            priors      = priors
                                             )
 
 sample = data[0]
 
 images, targets = sample
 
-images /= 255.0
+#images /= 255.0
 #batch_size = image.shape[0]
 #
 #p = point_form(priors)
@@ -148,21 +150,21 @@ def preprocess_image(image_path):
 #                  threshold = 0.6,
 #                  priors    = priors)
 
-
-loss_fn = SSDLoss(anchors = priors, 
-                  threshold=0.6, 
-                  variance=[0.1,0.20])
-
-
-_, img = preprocess_image('000018.jpg')
-
-model = SSD300(input_shape=(300,300, 3), num_classes=21)
-
-prediction = model.predict(images)
-
-#pred = K.get_value(prediction[0])
-
-loss = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
+#
+#loss_fn = SSDLoss(anchors = priors, 
+#                  threshold=0.6, 
+#                  variance=[0.1,0.20])
+#
+#
+#_, img = preprocess_image('000018.jpg')
+#
+#model = SSD300(input_shape=(300,300, 3), num_classes=21)
+#
+#prediction = model.predict(images)
+#
+##pred = K.get_value(prediction[0])
+#
+#loss = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
 
 #a = np.sort(loss_c, axis=-1)
 #b = np.argsort(loss_c, axis=-1)
@@ -176,5 +178,5 @@ loss = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
 
 
 
-with tf.Session() as sess:
-    print(sess.run(loss))
+#with tf.Session() as sess:
+#    print(sess.run(loss))

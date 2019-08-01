@@ -128,10 +128,11 @@ def match(truths      = None,
           labels     = None, 
           priors     = None, 
           variance   = None, 
-          threshold  = 0.5, 
-          idx        = None,
-          loc_t      = None,
-          conf_t     = None):
+          threshold  = 0.5,
+#          idx        = None,
+#          loc_t      = None,
+#          conf_t     = None
+        ):
     """
     Match each prior (or anchor) box with the ground truth box of the ighest jaccard overlap, 
     encode the bounding boxes, then return the matched indices correspoding to both confidence 
@@ -185,10 +186,9 @@ def match(truths      = None,
     
     loc       = encode(matched=matches, priors=priors, variances=variance)
     
-    loc_t[idx]  = loc
-    conf_t[idx] = conf
     
-    return iou, loc_t, conf_t
+    
+    return loc, conf
     
 
 def encode(matched = None, priors = None, variances = [0.1, 0.2]):

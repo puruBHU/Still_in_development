@@ -19,7 +19,7 @@ from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
-from utility import *
+from utility import match
 
 
 VOC_CLASSES = (  # always index 0
@@ -284,9 +284,8 @@ class Dataloader(Sequence):
         
         for m, files in enumerate(file_names):
             
-            loc_t           = np.zeros(shape = (num_priors, 4), dtype = np.float32)
-            conf_t          = np.zeros(shape = (num_priors,), dtype = np.float32)
-           
+            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
+                       
             image_path       = self.root_path/'JPEGImages'/files
             annotation_path  = self.root_path/'Annotations'/files
                         
@@ -303,12 +302,24 @@ class Dataloader(Sequence):
             
             ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
+            bndbox_loc = ground_truth[:,1:]
+            class_ids  = ground_truth[:,0]
+            
+            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
+                                           labels = class_ids,
+                                           priors = self.priors, 
+                                           variance= [0.1, 0.2], 
+                                           threshold = 0.5)
+            
+           
             
             
             batch_x.append(image)
-            batch_y.append(ground_truth)
+            batch_y.append(labels)
         
         batch_x = np.array(batch_x, dtype = np.float32)
+        batch_y = np.array(batch_y, dtype = np.float32)
+        
         
         return (batch_x, batch_y)
             
@@ -379,8 +390,8 @@ class Dataloader(Sequence):
         return np.array(data)
     
 if __name__ == '__main__':
-#    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
-    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
+#    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
     voc_image_path      = root/'JPEGImages'
     voc_annotation_path = root/'Annotations'
     voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
