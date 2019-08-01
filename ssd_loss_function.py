@@ -13,6 +13,7 @@ from keras.utils import to_categorical
 
 
 
+
 class SSDLoss(object):
     
     def __init__(self, anchors,
@@ -33,7 +34,8 @@ class SSDLoss(object):
         return tf.losses.huber_loss(labels = y_true, predictions=y_pred)
     
     def classificationLoss(self, y_true, y_pred):
-        return K.categorical_crossentropy(target = y_true, output = y_pred)
+        loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y_true, logits=y_pred)
+        return K.mean(loss)
     
     def ComputeLoss(self, y_true, y_pred):
         
@@ -112,21 +114,23 @@ class SSDLoss(object):
         
         conf_t = to_categorical(conf_t, self.num_classes)
         conf_target = conf_t[pos_idx + neg_idx]
+        conf_target = conf_target.reshape(-1, self.num_classes)
+       
+#        print(conf_p.shape, conf_target.shape)
+        conf_p = K.cast_to_floatx(conf_p)
+        conf_target = K.cast_to_floatx(conf_target)
         
-#        conf_p = K.cast_to_floatx(conf_p)
-#        conf_target = K.cast_to_floatx(conf_target)
-        
-        loss_confidence = self.classificationLoss(y_true = conf_target, y_pred = conf_p )
+        loss_confidence = self.classificationLoss(y_true = conf_target, y_pred = conf_p)
         
 
   
-#        N = None
-#        
-#        loss = 1/N * (conf_loss + self.alpha * loc_loss)
-#        
+        N = np.sum(num_positives)
+        
+        loss = 1/N * (loss_confidence + self.alpha * loc_loss)
+        
 #        if N == 0:
 #            loss = 0
         
-        return loc_loss, loss_confidence
+        return loss
         
 
