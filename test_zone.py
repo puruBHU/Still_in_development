@@ -32,15 +32,18 @@ from skimage.io import imread, imshow
 import cv2
 import numpy as np
 from ssd_loss_function import SSDLoss
+from ssd_loss_function_v2 import CustomLoss
+from keras.losses import categorical_crossentropy
 
 
 
 
  
 #root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
-voc_2007_datafile = root/'ImageSets'/'Main'/'train.txt'
-voc_2007_images   = root/'JPEGImages'
+root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
+
+voc_2007_images      = root/'JPEGImages'
 voc_2007_annotations = root/'Annotations'
 
 
@@ -60,8 +63,8 @@ specs = [
 ]
 
 priors = generate_ssd_priors(specs)
-testloader = DataAugmentor()
 
+testloader = DataAugmentor()
 data       = testloader.flow_from_directory(root = root,
                                             data_file=voc_2007_datafile,
                                             target_size=300,
@@ -74,7 +77,6 @@ sample = data[0]
 images, targets = sample
 
 images /= 255.0
-
 #batch_size = image.shape[0]
 #
 #p = point_form(priors)
@@ -160,7 +162,7 @@ prediction = model.predict(images)
 
 #pred = K.get_value(prediction[0])
 
-loss_loc, loss_conf = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
+loss = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
 
 #a = np.sort(loss_c, axis=-1)
 #b = np.argsort(loss_c, axis=-1)
@@ -171,3 +173,8 @@ loss_loc, loss_conf = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
 
 #with tf.Session() as sess:
 #    print('Loss: ',sess.run(loss))
+
+
+
+with tf.Session() as sess:
+    print(sess.run(loss))

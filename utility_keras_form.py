@@ -10,6 +10,9 @@ from keras.layers import BatchNormalization
 from keras.initializers import he_normal
 from keras.regularizers import l2
 from keras import backend as K
+import tensorflow as tf
+
+tf_session = K.get_session()
 
 import numpy as np
 
@@ -50,7 +53,7 @@ def point_form(boxes):
     top    = boxes[:,:2] - boxes[:,2:] /2
     bottom = boxes[:,:2] + boxes[:,2:]/2
 
-    return np.concatenate((top, bottom), axis=1)
+    return K.concatenate([top, bottom], axis=1)
 
 def center_form(boxes):
     """ Convert prior boxes to (cx, cy, w, h)
@@ -61,7 +64,7 @@ def center_form(boxes):
     center_coordinates = (boxes[:,:2] + boxes[:,2:]) / 2
     width_hegight      = (boxes[:,2:] - boxes[:,:2]) / 2
     
-    return np.concatenate((center_coordinates, width_hegight), axis=1)
+    return K.concatenate([center_coordinates, width_hegight], axis=1)
 
 
 def intersect(box_a, box_b):
@@ -76,22 +79,26 @@ def intersect(box_a, box_b):
     Return:
       (tensor) intersection area, Shape: [A,B].
     """
-    box_a = np.array(box_a, dtype = np.float32)
-    box_b = np.array(box_b, dtype = np.float32) 
+  
+#    A = K.shape(box_a)[0]
+#    B = K.shape(box_b)[0]
     
-    A = box_a.shape[0]
-    B = box_b.shape[0]
+    A = K.int_shape(box_a)[0]
+    B = K.int_shape(box_b)[0]
+    
+    print(A,B)
+    
+    
+ 
+     
+    min_xy = K.maximum(K.repeat_elements(K.reshape(box_a[:,:2], shape=(A, 1, -1)), B, axis=1),
+                       K.repeat_elements(K.reshape(box_b[:,:2], shape=(1, B, -1)), A, axis=0))
     
 
+    max_xy = K.minimum(K.repeat_elements(K.reshape(box_a[:,2:], shape=(A, 1, -1)), B, axis=1),
+                       K.repeat_elements(K.reshape(box_b[:,2:], shape=(1, B, -1)), A, axis=0))
     
-    min_xy = np.maximum(box_a[:,:2].reshape(A, 1, -1).repeat(B, axis = 1),
-                        box_b[:,:2].reshape(1, B, -1).repeat(A, axis = 0))
-    
-   
-    max_xy = np.minimum(box_a[:,2:].reshape(A, 1, -1).repeat(B, axis = 1),
-                        box_b[:,2:].reshape(1, B, -1).repeat(A, axis = 0))
-    
-    inter = np.clip((max_xy - min_xy), a_min = 0, a_max = None)
+    inter = K.clip((max_xy - min_xy), min_value = 0, max_value = 1.0)
     
     return inter[:,:,0] * inter[:,:,1]
    
