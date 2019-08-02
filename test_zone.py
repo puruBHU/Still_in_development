@@ -31,7 +31,7 @@ from ssd300_model import SSD300
 from skimage.io import imread, imshow
 import cv2
 import numpy as np
-from ssd_loss_function import SSDLoss
+#from ssd_loss_function import SSDLoss
 from ssd_loss_function_v2 import CustomLoss
 from keras.losses import categorical_crossentropy
 
@@ -39,8 +39,8 @@ from keras.losses import categorical_crossentropy
 session = K.get_session()
 
  
-#root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+#root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
 
 voc_2007_images      = root/'JPEGImages'
@@ -129,9 +129,9 @@ def preprocess_image(image_path):
 
 
 
-loss_fn = SSDLoss(anchors = priors, 
-                  threshold=0.6, 
-                  variance=[0.1,0.20])
+#loss_fn = SSDLoss(anchors = priors, 
+#                  threshold=0.6, 
+#                  variance=[0.1,0.20])
 
 _, img = preprocess_image('000018.jpg')
 
@@ -173,5 +173,5 @@ loss = SSDLoss(y_true = targets, y_pred = prediction)
 
 
 
-#with tf.Session() as sess:
-#    print(sess.run(loss))
+with tf.Session() as sess:
+    print(sess.run(loss))

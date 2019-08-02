@@ -38,7 +38,8 @@ tf_session = K.get_session()
 
 
 #%%****************************************************************************
-root                  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+root                  = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+#root                  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_train_file   = root/'ImageSets'/'Main'/'train.txt'
 voc_2007_val_file     = root/'ImageSets'/'Main'/'val.txt'
 voc_2007_images       = root/'JPEGImages'

@@ -27,37 +27,41 @@ def CustomLoss(anchors      = None,
     
     def SSDLoss(y_true, y_pred):
 
-        conf_data =  y_pred[:,:, 4:]
-        loc_data  =  y_pred[:,:, :4]
+        conf_pred =  y_pred[:,:, 4:] # Predicted confidence
+        loc_pred  =  y_pred[:,:, :4] # Predicted location
         
-        conf_true =  y_true[:,:,-1]
-        loc_true  =  y_true[:,:,:-1]
+        conf_true =  y_true[:,:,-1]  # Ground truth confidence
+        loc_true  =  y_true[:,:,:-1] # Ground truth prediction
        
         #Since y_pred is list, batch size will
-        num_priors = anchors.shape[0]
+        num_priors    = anchors.shape[0]
        
         positives     = K.greater(conf_true , 0)
-#        pos           = K.cast(positives, dtype = 'int16')
+        pos           = K.cast(positives, dtype = 'int16')
         
-#        num_positives = K.sum(pos, axis = 1, keepdims = True)
+        num_positives = K.sum(pos, axis = 1, keepdims = True)
         
-        pos_shape = K.shape(positives)
+        pos_shape     = K.shape(positives)
         
         pos_idx = K.reshape(positives, shape = (pos_shape[0], pos_shape[1], 1))
         pos_idx = K.repeat_elements(pos_idx, 4, axis = -1)
 
-        
-#        loc_p = loc_data[pos_idx]
+        # Masking of the tensor
+        loc_p = K.tf.boolean_mask(loc_data, pos_idx)
+        loc_t = K.tf.boolean_mask(loc_true, pos_idx)
 #        loc_t = loc_true[pos_idx]
         
-#        loc_p = K.reshape(loc_p, shape = (-1,4))
-#        loc_t = K.reshape(loc_t, shape= (-1, 4))
+        loc_p = K.reshape(loc_data, shape = (-1,4))
+        loc_t = K.reshape(loc_true, shape= (-1, 4))
 
-#        loc_loss  = smoothL1Loss(y_true = loc_t, y_pred = loc_p)
+        loc_loss  = smoothL1Loss(target = loc_t, output = loc_p)
         
-#        batch_conf = conf_data.reshape(-1, num_classes)
-#        index      = conf_t.reshape(-1, 1).astype('int')
-#        
+       
+        batch_conf = K.reshape(conf_data, shape = (-1, num_classes))
+        # Reshape the ground truth confidence to shape (num_priors, 1)
+#        index      = K.reshape(conf_true, shape = (-1,1))
+        
+#        loss_c     = K.logsumexp(batch_conf) - K.gather()
 #        loss_c     = log_sum_exp(batch_conf) - gather(batch_conf, 1, index)
 #        
 #        # Hard Negative Mining
@@ -101,5 +105,5 @@ def CustomLoss(anchors      = None,
 #        loss = 1/N * (loss_confidence + alpha * loc_loss)
         
       
-        return pos_idx
+        return loc_loss
     return SSDLoss
