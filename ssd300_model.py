@@ -116,12 +116,12 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv4_3_norm = L2Norm(name = 'l2_normalization')(conv4_3)
     
     # Calculate the spatial dimension of output layer
-    conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
-    fc7_dim       = K.int_shape(fc7)[1:-1]
-    conv8_2_dim   = K.int_shape(conv8_2)[1:-1]
-    conv9_2_dim   = K.int_shape(conv9_2)[1:-1]
-    conv10_2_dim  = K.int_shape(conv10_2)[1:-1]
-    conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
+#    conv4_3_dim   = K.int_shape(conv4_3)[1:-1]
+#    fc7_dim       = K.int_shape(fc7)[1:-1]
+#    conv8_2_dim   = K.int_shape(conv8_2)[1:-1]
+#    conv9_2_dim   = K.int_shape(conv9_2)[1:-1]
+#    conv10_2_dim  = K.int_shape(conv10_2)[1:-1]
+#    conv11_2_dim  = K.int_shape(conv11_2)[1:-1]
     
     
     # The class confidence score

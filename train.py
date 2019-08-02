@@ -119,11 +119,10 @@ model = SSD300(input_shape=(300,300, 3), num_classes=21)
 
 model.compile(optimizer = SGD(lr= 1e-3, momentum = 0.9 , nesterov=True, decay=1e-5),
               loss      = CustomLoss(anchors     = priors,
-                                     threshold   = 0.6,
                                      negpos_ratio= 3,
                                      num_classes = 21,
-                                     alpha       = 1.0,
-                                     variance    = [0.1,0.2]))
+                                     alpha       = 1.0
+                                     ))
 
 #%%****************************************************************************
 #model.fit_generator(generator       =  train_generator,

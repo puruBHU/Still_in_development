@@ -36,11 +36,11 @@ from ssd_loss_function_v2 import CustomLoss
 from keras.losses import categorical_crossentropy
 
 
-
+session = K.get_session()
 
  
-root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-#root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+#root = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
 
 voc_2007_images      = root/'JPEGImages'
@@ -64,11 +64,13 @@ specs = [
 
 priors = generate_ssd_priors(specs)
 
+batch_size = 4
+
 testloader = DataAugmentor()
 data       = testloader.flow_from_directory(root = root,
                                             data_file=voc_2007_datafile,
                                             target_size=300,
-                                            batch_size = 32,
+                                            batch_size = batch_size,
                                             shuffle    = True,
                                             num_classes = 21,
                                             priors      = priors
@@ -124,47 +126,40 @@ def preprocess_image(image_path):
     img /= 255.0
     return image, img
 
-#def ComputeLoss(y_true, y_pred):
-#        
-#        conf_data, loc_data =  y_pred
-#        
-#
-#        #Since y_pred is list, batch size will
-#        batch_size, num_priors, _ = conf_data.shape
-#        
-#  
-#        
-#        loc_t  = np.zeros(shape = (batch_size, num_priors, 4), dtype=np.float32)
-#        conf_t = np.zeros(shape = (batch_size, num_priors), dtype=np.float32)
-#       
-#        for idx in range(batch_size):
-#            true_loc       = y_true[idx][:,1:]
-#            true_class_id  = y_true[idx][:,0]
-##            print(true_class_id)
-#            
-#            match(truths    = true_loc,  
-#                  labels    = true_class_id, 
-#                  loc_t     = loc_t, 
-#                  conf_t    = conf_t,
-#                  variance  = [0.1, 0.2],
-#                  threshold = 0.6,
-#                  priors    = priors)
 
-#
-#loss_fn = SSDLoss(anchors = priors, 
-#                  threshold=0.6, 
-#                  variance=[0.1,0.20])
-#
-#
-#_, img = preprocess_image('000018.jpg')
-#
-#model = SSD300(input_shape=(300,300, 3), num_classes=21)
-#
-#prediction = model.predict(images)
-#
+
+
+loss_fn = SSDLoss(anchors = priors, 
+                  threshold=0.6, 
+                  variance=[0.1,0.20])
+
+_, img = preprocess_image('000018.jpg')
+
+model = SSD300(input_shape=(300,300, 3), num_classes=21)
+
+prediction = model.predict(images)
+
 ##pred = K.get_value(prediction[0])
+
+SSDLoss = CustomLoss(anchors   = priors, 
+                     alpha     = 1.0
+                    )
+
+loss = SSDLoss(y_true = targets, y_pred = prediction)
+
+#pos           = K.cast(positives, dtype = 'int16')
 #
-#loss = loss_fn.ComputeLoss(y_true = targets, y_pred = prediction)
+#num_positives = K.sum(pos, axis = 1, keepdims = True)
+#
+#pos_shape = K.shape(positives)
+#
+#pos_idx = K.reshape(positives, shape = (pos_shape[0], pos_shape[1], 1))
+#pos_idx = K.repeat_elements(pos_idx, 4, axis = -1)
+
+
+#loc_p = loc_data[pos_idx]
+
+#test_data = K.eval(conf_t)
 
 #a = np.sort(loss_c, axis=-1)
 #b = np.argsort(loss_c, axis=-1)
