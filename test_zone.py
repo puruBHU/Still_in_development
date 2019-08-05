@@ -23,7 +23,7 @@ from keras import backend as K
 
 
 from SSD_generate_anchors import generate_ssd_priors
-from CustomDataLoader import DataAugmentor
+from CustomDataLoaderv2 import DataAugmentor
 from utility import *
 from pathlib import Path
 import collections
@@ -39,8 +39,8 @@ from keras.losses import categorical_crossentropy
 session = K.get_session()
 
  
-root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-#root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+#root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
 
 voc_2007_images      = root/'JPEGImages'
@@ -141,11 +141,11 @@ prediction = model.predict(images)
 
 ##pred = K.get_value(prediction[0])
 
-SSDLoss = CustomLoss(anchors   = priors, 
-                     alpha     = 1.0
-                    )
-
-loss = SSDLoss(y_true = targets, y_pred = prediction)
+#SSDLoss = CustomLoss(anchors   = priors, 
+#                     alpha     = 1.0
+#                    )
+#
+#loss = SSDLoss(y_true = targets, y_pred = prediction)
 
 #pos           = K.cast(positives, dtype = 'int16')
 #
@@ -171,7 +171,8 @@ loss = SSDLoss(y_true = targets, y_pred = prediction)
 #with tf.Session() as sess:
 #    print('Loss: ',sess.run(loss))
 
+#loss = loss
+#
+#with tf.Session() as sess:
+#    print(sess.run(loss))
 
-
-with tf.Session() as sess:
-    print(sess.run(loss))

@@ -37,7 +37,7 @@ def CustomLoss(anchors      = None,
         num_priors    = anchors.shape[0]
        
         positives     = K.greater(conf_true , 0)
-        pos           = K.cast(positives, dtype = 'int16')
+        pos           = K.cast(positives, dtype = 'float32')
         
         num_positives = K.sum(pos, axis = 1, keepdims = True)
         
@@ -47,20 +47,20 @@ def CustomLoss(anchors      = None,
         pos_idx = K.repeat_elements(pos_idx, 4, axis = -1)
 
         # Masking of the tensor
-        loc_p = K.tf.boolean_mask(loc_data, pos_idx)
+        loc_p = K.tf.boolean_mask(loc_pred, pos_idx)
         loc_t = K.tf.boolean_mask(loc_true, pos_idx)
 #        loc_t = loc_true[pos_idx]
         
-        loc_p = K.reshape(loc_data, shape = (-1,4))
+        loc_p = K.reshape(loc_pred, shape = (-1,4))
         loc_t = K.reshape(loc_true, shape= (-1, 4))
 
         loc_loss  = smoothL1Loss(target = loc_t, output = loc_p)
-        
-       
-        batch_conf = K.reshape(conf_data, shape = (-1, num_classes))
-        # Reshape the ground truth confidence to shape (num_priors, 1)
+#        
+#       
+#        batch_conf = K.reshape(conf_pred, shape = (-1, num_classes))
+#        # Reshape the ground truth confidence to shape (num_priors, 1)
 #        index      = K.reshape(conf_true, shape = (-1,1))
-        
+#        
 #        loss_c     = K.logsumexp(batch_conf) - K.gather()
 #        loss_c     = log_sum_exp(batch_conf) - gather(batch_conf, 1, index)
 #        
@@ -96,14 +96,14 @@ def CustomLoss(anchors      = None,
 #        conf_p = K.cast_to_floatx(conf_p)
 #        conf_target = K.cast_to_floatx(conf_target)
 #        
-#        loss_confidence = classificationLoss(y_true = conf_target, y_pred = conf_p)
-#        
-#
-#  
-#        N = np.sum(num_positives)
-#        
-#        loss = 1/N * (loss_confidence + alpha * loc_loss)
+#        loss_confidence = 0 #classificationLoss(y_true = conf_target, y_pred = conf_p)
+
+        N = K.sum(num_positives)
+        N = K.maximum(1.0, N)
+        
+       
+        loss =  loc_loss/ N
         
       
-        return loc_loss
+        return loss
     return SSDLoss

@@ -24,13 +24,14 @@ set_session(tf.Session(config=config))
 from keras import backend as K
 
 from SSD_generate_anchors import generate_ssd_priors
-from CustomDataLoader import DataAugmentor
+from CustomDataLoaderv2 import DataAugmentor
 from pathlib import Path
 
 import collections
 from ssd300_model import SSD300
 
-from ssd_loss_function_v2 import CustomLoss
+from keras_ssd_loss import SSDLoss
+#from ssd_loss_function_v2 import CustomLoss
 from keras.optimizers import SGD
 import numpy as np
 
@@ -38,8 +39,8 @@ tf_session = K.get_session()
 
 
 #%%****************************************************************************
-root                  = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-#root                  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+#root                  = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+root                  = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_train_file   = root/'ImageSets'/'Main'/'train.txt'
 voc_2007_val_file     = root/'ImageSets'/'Main'/'val.txt'
 voc_2007_images       = root/'JPEGImages'
@@ -55,7 +56,7 @@ std  = np.array( [69.89365, 69.07726, 72.30074], dtype=np.float32)
 target_size = (300,300)
 batch_size  = 4
 
-num_epochs  = 5
+num_epochs  = 10
 
 #%%****************************************************************************
 SSDBoxSizes = collections.namedtuple('SSDBoxSizes', ['min', 'max'])
@@ -92,7 +93,8 @@ train_generator   = trainloader.flow_from_directory(
                                             data_file   = voc_2007_train_file,
                                             target_size = target_size,
                                             batch_size  = batch_size,
-                                            shuffle     = True
+                                            shuffle     = True,
+                                            priors      = priors
                                             )
 
 val_generator     = valloader.flow_from_directory (
@@ -100,7 +102,8 @@ val_generator     = valloader.flow_from_directory (
                                             data_file    = voc_2007_train_file,
                                             target_size  = target_size,
                                             batch_size   = batch_size,
-                                            shuffle      = False
+                                            shuffle      = False,
+                                            priors       = priors
                                             )
 
 
@@ -117,22 +120,17 @@ model = SSD300(input_shape=(300,300, 3), num_classes=21)
 #                 alpha       = 1.0,
 #                 variance    = [0.1,0.2])
 
+loss_fn = SSDLoss()
 
-model.compile(optimizer = SGD(lr= 1e-3, momentum = 0.9 , nesterov=True, decay=1e-5),
-              loss      = CustomLoss(anchors     = priors,
-                                     negpos_ratio= 3,
-                                     num_classes = 21,
-                                     alpha       = 1.0
-                                     ))
+model.compile(optimizer = SGD(lr= 1e-4, momentum = 0.9 , nesterov=True, decay=1e-5),
+              loss      = loss_fn.compute_loss)
 
 #%%****************************************************************************
-#model.fit_generator(generator       =  train_generator,
-#                    validation_data =  val_generator,   
-#                    epochs          =  num_epochs,
-#                    steps_per_epoch = steps_per_epoch,
-#                    validation_steps = validation_steps,
-#                    verbose   = 1,
-#                    shuffle   = True,
-#                    use_multiprocessing  = True,
-#                    workers              = 4)
+model.fit_generator(generator       =  train_generator,
+                    validation_data =  val_generator,   
+                    epochs          =  num_epochs,
+                    steps_per_epoch = steps_per_epoch,
+                    validation_steps = validation_steps,
+                    verbose   = 1)
+                 
 
