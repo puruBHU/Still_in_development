@@ -55,8 +55,8 @@ def CustomLoss(anchors      = None,
         loc_t = K.reshape(loc_true, shape= (-1, 4))
 
         loc_loss  = smoothL1Loss(target = loc_t, output = loc_p)
-#        
-#       
+       
+      
 #        batch_conf = K.reshape(conf_pred, shape = (-1, num_classes))
 #        # Reshape the ground truth confidence to shape (num_priors, 1)
 #        index      = K.reshape(conf_true, shape = (-1,1))
