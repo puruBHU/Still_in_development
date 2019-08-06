@@ -216,6 +216,16 @@ def encode(matched = None, priors = None, variances = [0.1, 0.2]):
     
     return np.concatenate((g_cxcy, g_wh), axis = -1)
 
+def decode(loc = None, priors=None, variances = [0.1, 0.2]):
+    xy = priors[:,:2] + loc[:,:2] * variances[0] * priors[:,:2]
+    wh = priors[:,2:] * np.exp(loc[:,2:] * variances[1])
+    
+    boxes = np.concatenate((xy, wh), axis=-1)
+    
+    boxes[:,:2] -= boxes[:,2:] / 2
+    boxes[:,2:] += boxes[:,:2]
+    return boxes
+
 def log_sum_exp(x):
     x_max = np.max(x)
     return np.log(np.sum(np.exp(x - x_max), axis=1, keepdims=True)) + x_max
