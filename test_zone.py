@@ -23,7 +23,7 @@ from keras import backend as K
 
 
 from SSD_generate_anchors import generate_ssd_priors
-from CustomDataLoaderv2 import DataAugmentor
+from CustomDataLoaderv3 import DataAugmentor
 from utility import *
 from pathlib import Path
 import collections
@@ -39,8 +39,8 @@ from keras.losses import categorical_crossentropy
 session = K.get_session()
 
  
-#root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
+#root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
 voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
 
 voc_2007_images      = root/'JPEGImages'
@@ -117,27 +117,27 @@ images, targets = sample
 #with tf.Session() as sess:
 #    sess.run(init)
 #    print(sess.run(new))
-
-def preprocess_image(image_path):
-    image = imread(image_path)
-    img = cv2.resize(image, (300, 300), interpolation = cv2.INTER_CUBIC)
-    img = np.expand_dims(img,axis = 0)
-    img = np.float32(img)
-    img /= 255.0
-    return image, img
-
-
-
-
-#loss_fn = SSDLoss(anchors = priors, 
-#                  threshold=0.6, 
-#                  variance=[0.1,0.20])
-
-_, img = preprocess_image('000018.jpg')
-
-model = SSD300(input_shape=(300,300, 3), num_classes=21)
-
-prediction = model.predict(images)
+#
+#def preprocess_image(image_path):
+#    image = imread(image_path)
+#    img = cv2.resize(image, (300, 300), interpolation = cv2.INTER_CUBIC)
+#    img = np.expand_dims(img,axis = 0)
+#    img = np.float32(img)
+#    img /= 255.0
+#    return image, img
+#
+#
+#
+#
+##loss_fn = SSDLoss(anchors = priors, 
+##                  threshold=0.6, 
+##                  variance=[0.1,0.20])
+#
+#_, img = preprocess_image('000018.jpg')
+#
+#model = SSD300(input_shape=(300,300, 3), num_classes=21)
+#
+#prediction = model.predict(images)
 
 ##pred = K.get_value(prediction[0])
 

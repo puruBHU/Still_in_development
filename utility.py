@@ -124,6 +124,19 @@ def jaccard(box_a, box_b):
     
     return iou
 
+def index_fill(array, index, axis, value):
+    dim = array.shape
+    
+    if axis == 1:
+        for i in range(dim[0]):
+            np.put(array[i,:], index, value)
+            
+    elif axis == 0:
+        for i in range(dim[1]):
+            np.put(array[:,i], index, value)
+            
+    return array
+
 def match(truths      = None, 
           labels     = None, 
           priors     = None, 
@@ -172,7 +185,7 @@ def match(truths      = None,
 
     best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
     best_truth_idx     = np.argmax(iou, axis = 0)
-    
+    best_truth_overlap = index_fill(best_truth_overlap, best_prior_idx, axis=0, value=2)
 #    print(best_truth_overlap.shape)
 #    print(best_truth_idx.shape)
 
