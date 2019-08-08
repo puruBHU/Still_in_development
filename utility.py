@@ -263,7 +263,63 @@ def gather(self, dim, index):
     gathered = np.choose(index_swaped, data_swaped)
     return np.swapaxes(gathered, 0, dim)
 
-def non_maximum_supression():
-    pass
 
 
+def non_maximum_supression(boxes, scores, overlap = 0.5, top_k= 200):
+
+    keep = np.zeros(shape = scores.shape[0], dtype = np.float32)
+    
+    if len(boxes) == 0:
+        return keep
+    
+    x1 = boxes[:,0]
+    y1 = boxes[:,1]
+    
+    x2 = boxes[:,2]
+    y2 = boxes[:,3]
+    
+    area = (x2 - x1) * (y2 - y1)
+    
+    idx = np.argsort(scores)
+    
+    idx = idx[-top_k:]
+    
+
+    
+    count = 0 
+    
+    while len(idx) > 0:
+        i = idx[-1]  # index of current largest val
+        
+        keep[count] = i
+        count += 1
+        
+        if idx.shape[0] == 1:
+            break
+            
+        idx = idx[:-1]
+        
+        xx1 = np.take(x1, indices=idx, axis=0)
+        yy1 = np.take(y1, indices=idx, axis=0)
+        xx2 = np.take(x2, indices=idx, axis=0)
+        yy2 = np.take(y2, indices=idx, axis=0)
+        
+        xx1 = np.clip(xx1, a_min = x1[i],  a_max=None)
+        yy1 = np.clip(yy1, a_min = y1[i],  a_max=None)
+        xx2 = np.clip(xx2, a_min = None,   a_max=x2[i])
+        yy2 = np.clip(yy2, a_min = None,   a_max=x2[i])
+        
+        w = xx2 - xx1
+        h = yy2 - yy1
+
+        
+        w = np.clip(w, a_min = 0., a_max = None)
+        h = np.clip(h, a_min = 0., a_max = None)
+        
+        inter = w * h
+        rem_areas = np.take(area, indices = idx, axis = 0) # load remaining areas
+        union     = (rem_areas - inter) + area[i]
+        IOU       = inter/union
+        idx       = idx[np.less_equal(IOU, overlap)]
+#         print(idx.shape)
+    return keep, count
