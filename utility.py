@@ -131,19 +131,20 @@ def jaccard(box_a, box_b):
     
     return iou
 
-def index_fill(array, index, axis, value):
-    dim = array.shape
-    
-    if axis == 1:
-        for i in range(dim[0]):
-            np.put(array[i,:], index, value)
-            
-    elif axis == 0:
-        for i in range(dim[1]):
-            np.put(array[:,i], index, value)
-            
-    return array
 
+def numpy_argmax(a, axis = 0):
+    
+    if not axis == 0:
+        raise ValueError('to be used only for axis 0')
+    
+    row, col = a.shape[:2]
+    output = []
+    for i in range(col):
+        x = a[:,i]
+        index = np.where(x == x.max(axis = 0))[0][-1] # the last entry in the array
+        output.append(index)
+        
+    return np.array(output)
 
 
 def match(truths      = None, 
@@ -190,8 +191,9 @@ def match(truths      = None,
     best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
     best_truth_idx     = numpy_argmax(iou)
     
-#     best_truth_overlap = index_fill(best_truth_overlap, best_prior_idx, axis=0, value=2)   
-
+    # To ensure best prior
+    np.put(a= best_truth_overlap, ind = best_prior_idx, v=2)
+    
     for j in range(best_prior_idx.shape[0]):
         best_truth_idx[best_prior_idx[j]] = j
     
@@ -299,10 +301,8 @@ def non_maximum_supression(boxes, scores, overlap = 0.5, top_k= 200):
     
     idx = idx[-top_k:]
     
-
-    
     count = 0 
-    
+ 
     while len(idx) > 0:
         i = idx[-1]  # index of current largest val
         
