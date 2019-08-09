@@ -24,7 +24,7 @@ set_session(tf.Session(config=config))
 from keras import backend as K
 
 from SSD_generate_anchors import generate_ssd_priors
-from CustomDataLoaderv2 import DataAugmentor
+from CustomDataLoader import DataAugmentor
 from pathlib import Path
 
 import collections
