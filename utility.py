@@ -48,7 +48,7 @@ def point_form(boxes):
     """ Convert prior boxes to (xmin, ymin, xmax, ymax)
     """
     top    = boxes[:,:2] - boxes[:,2:] /2
-    bottom = boxes[:,:2] + boxes[:,2:]/2
+    bottom = boxes[:,:2] + boxes[:,2:] /2
 
     return np.concatenate((top, bottom), axis=1)
 
@@ -82,14 +82,21 @@ def intersect(box_a, box_b):
     A = box_a.shape[0]
     B = box_b.shape[0]
     
+    box_a_min = np.expand_dims(box_a[:, :2], axis = 1)
+    box_a_max = np.expand_dims(box_a[:, 2:], axis = 1)
+    
+    box_b_min = np.expand_dims(box_b[:, :2], axis = 0)
+    box_b_max = np.expand_dims(box_b[:, 2:], axis = 0)
+    
+    
+    max_xy = np.minimum(box_a_max.repeat(B, axis = 1),
+                        box_b_max.repeat(A, axis = 0))
+    
+    min_xy = np.maximum(box_a_min.repeat(B, axis = 1),
+                        box_b_min.repeat(A, axis = 0))
+    
 
-    
-    min_xy = np.maximum(box_a[:,:2].reshape(A, 1, -1).repeat(B, axis = 1),
-                        box_b[:,:2].reshape(1, B, -1).repeat(A, axis = 0))
-    
-   
-    max_xy = np.minimum(box_a[:,2:].reshape(A, 1, -1).repeat(B, axis = 1),
-                        box_b[:,2:].reshape(1, B, -1).repeat(A, axis = 0))
+
     
     inter = np.clip((max_xy - min_xy), a_min = 0, a_max = None)
     

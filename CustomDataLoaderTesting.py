@@ -165,8 +165,8 @@ class DataAugmentor(object):
                     num_classes = num_classes,
                     shuffle     = shuffle,
                     data_format = self.data_format,
-                    seed        = seed,
-                    priors      = priors
+                    seed        = seed
+#                    priors      = priors
                     )
     
     def standardize(self,x):
@@ -220,8 +220,8 @@ class Dataloader(Sequence):
 #                 color_space  = None, 
                  data_format  = 'channel_last',
                  num_classes  = 21,
-                 seed         = None,
-                 priors       = None):
+                 seed         = None):
+#                 priors       = None):
         
 #         super(Dataloader, self).__init__(self)
         
@@ -237,7 +237,7 @@ class Dataloader(Sequence):
 #        self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
-        self.priors             = priors
+#        self.priors             = priors
         
         with open(data_file, 'r') as f:
             self.files = f.read().split()
@@ -281,11 +281,11 @@ class Dataloader(Sequence):
         batch_x = []
         batch_y = []
         
-        num_priors = self.priors.shape[0]
+#        num_priors = self.priors.shape[0]
         
         for m, files in enumerate(file_names):
             
-            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
+#            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
                        
             image_path       = self.root_path/'JPEGImages'/files
             annotation_path  = self.root_path/'Annotations'/files
@@ -303,23 +303,24 @@ class Dataloader(Sequence):
             
             ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
-            bndbox_loc = ground_truth[:,1:]
-            class_ids  = ground_truth[:,0]
+#            class_ids  = ground_truth[:,0]
+#            bndbox_loc = ground_truth[:,1:]
             
-            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
-                                           labels = class_ids,
-                                           priors = self.priors, 
-                                           variance= [0.1, 0.2], 
-                                           threshold = 0.5)
+          
+#            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
+#                                           labels = class_ids,
+#                                           priors = self.priors, 
+#                                           variance= [0.1, 0.2], 
+#                                           threshold = 0.5)
             
            
             
             
             batch_x.append(image)
-            batch_y.append(labels)
+            batch_y.append(ground_truth)
         
         batch_x = np.array(batch_x, dtype = np.float32)
-        batch_y = np.array(batch_y, dtype = np.float32)
+#        batch_y = np.array(batch_y)
         
         
         return (batch_x, batch_y)
