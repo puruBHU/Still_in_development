@@ -144,22 +144,20 @@ def index_fill(array, index, axis, value):
             
     return array
 
+
+
 def match(truths      = None, 
-          labels     = None, 
-          priors     = None, 
-          variance   = None, 
-          threshold  = 0.5,
-#          idx        = None,
-#          loc_t      = None,
-#          conf_t     = None
-        ):
+         labels     = None, 
+         priors     = None, 
+         variance   = None, 
+         threshold  = 0.5,
+         ):
     """
     Match each prior (or anchor) box with the ground truth box of the ighest jaccard overlap, 
     encode the bounding boxes, then return the matched indices correspoding to both confidence 
     and location predictions.
     
-    Both Truth and Priors are in the form (cx, cy, w, h)
-    Convert to form (xmin, ymin,xmax, ymax) before getting IOU
+  
     
     Arguments:
         threshold: (float) The overlap threshold used when matching boxes
@@ -169,44 +167,40 @@ def match(truths      = None,
         
         labels   : (tensor) All the class label for the image, shape : [num_obj]
         
-        loc_t    : (tensor) Tensor to be filled with encoded location targets
-        conf_t   : (tensor) Tensor to be filled with ematched indices for conf preds.
-        idx     : (int) current batch index
         
     Returns:
         The match indices corresponding to 
             1) location 
             2) cofidence predcition
     """
-    # Ground truth are  in form (xc, yc, w, h)
-    # convert it to form (xmin, ymin, xmax, ymax)
+    # Both Truth and Priors are in the form (cx, cy, w, h)
+    # Convert to form (xmin, ymin,xmax, ymax) before getting IOU
+   
     truths = point_form(truths)
+    priors = point_form(priors)
     
-    iou = jaccard(truths, point_form(priors))
+    iou = jaccard(truths, priors)
     
     best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
     best_prior_idx     = np.argmax(iou, axis =-1)
     
-#    print(best_prior_overlap.shape)
-#    print(best_prior_idx.shape)
+# #    print(best_prior_overlap.shape)
+# #    print(best_prior_idx.shape)
 
     best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
-    best_truth_idx     = np.argmax(iou, axis = 0)
-    best_truth_overlap = index_fill(best_truth_overlap, best_prior_idx, axis=0, value=2)
-#    print(best_truth_overlap.shape)
-#    print(best_truth_idx.shape)
+    best_truth_idx     = numpy_argmax(iou)
+    
+#     best_truth_overlap = index_fill(best_truth_overlap, best_prior_idx, axis=0, value=2)   
 
     for j in range(best_prior_idx.shape[0]):
         best_truth_idx[best_prior_idx[j]] = j
     
     matches = truths[best_truth_idx]
+    
     conf    = labels[best_truth_idx]
-
     conf[best_truth_overlap < threshold] = 0
     
-    loc       = encode(matched=matches, priors=priors, variances=variance)
-    
-    
+    loc     = encode(matched=matches, priors=priors, variances=variance)
     
     return loc, conf
     
@@ -235,7 +229,7 @@ def encode(matched = None, priors = None, variances = [0.1, 0.2]):
     g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
     g_wh = np.log(g_wh) / variances[1]
     
-    return g_cxcy
+    return np.concatenate((g_cxcy, g_wh), axis = 1)
 
 def decode(loc = None, priors=None, variances = [0.1, 0.2]):
     xy = priors[:,:2] + loc[:,:2] * variances[0] * priors[:,:2]
