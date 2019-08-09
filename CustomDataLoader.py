@@ -285,7 +285,7 @@ class Dataloader(Sequence):
         
         for m, files in enumerate(file_names):
             
-            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
+            labels           = np.zeros(shape = (num_priors, self.num_classes + 4), dtype = np.float32)
                        
             image_path       = self.root_path/'JPEGImages'/files
             annotation_path  = self.root_path/'Annotations'/files
@@ -306,11 +306,16 @@ class Dataloader(Sequence):
             bndbox_loc = ground_truth[:,1:]
             class_ids  = ground_truth[:,0]
             
-            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
-                                           labels = class_ids,
-                                           priors = self.priors, 
-                                           variance= [0.1, 0.2], 
-                                           threshold = 0.5)
+            loc, class_id  = match(truths = bndbox_loc, 
+                                   labels = class_ids,
+                                   priors = self.priors, 
+                                   variance= [0.1, 0.2], 
+                                   threshold = 0.5)
+            
+            class_id  = to_categorical(class_id, num_classes=self.num_classes)
+            
+            labels[:,:4] = loc
+            labels[:,4:] = class_id
             
            
             
@@ -381,13 +386,13 @@ class Dataloader(Sequence):
             bndbox_height = ymax - ymin
             bndbox_width  = xmax - xmin
             
-            xc = xmin + bndbox_width  / 2
-            yc = ymin + bndbox_height / 2
-            
+            xc = (xmin + xmax) / 2
+            yc = (ymin + ymax) / 2
+        
             
             # Since class_id = 0 is reserved for the background, 1 is added to index to genereate 
             # class_id for objects in the VOC dataset
-            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_width, bndbox_height])
+            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_height, bndbox_width])
             
         return np.array(data)
     

@@ -285,7 +285,7 @@ class Dataloader(Sequence):
         
         for m, files in enumerate(file_names):
             
-            labels           = np.zeros(shape = (num_priors, self.num_classes + 4), dtype = np.float32)
+            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
                        
             image_path       = self.root_path/'JPEGImages'/files
             annotation_path  = self.root_path/'Annotations'/files
@@ -306,16 +306,11 @@ class Dataloader(Sequence):
             bndbox_loc = ground_truth[:,1:]
             class_ids  = ground_truth[:,0]
             
-            loc, class_id  = match(truths = bndbox_loc, 
-                                   labels = class_ids,
-                                   priors = self.priors, 
-                                   variance= [0.1, 0.2], 
-                                   threshold = 0.5)
-            
-            class_id  = to_categorical(class_id, num_classes=self.num_classes)
-            
-            labels[:,:4] = loc
-            labels[:,4:] = class_id
+            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
+                                           labels = class_ids,
+                                           priors = self.priors, 
+                                           variance= [0.1, 0.2], 
+                                           threshold = 0.5)
             
            
             
@@ -392,13 +387,15 @@ class Dataloader(Sequence):
             
             # Since class_id = 0 is reserved for the background, 1 is added to index to genereate 
             # class_id for objects in the VOC dataset
-            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_width, bndbox_height])
+            # output format : (class_id, xc, yc, h , w)
+            
+            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_height, bndbox_width])
             
         return np.array(data)
     
 if __name__ == '__main__':
-    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
-#    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
+#    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
+    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
     voc_image_path      = root/'JPEGImages'
     voc_annotation_path = root/'Annotations'
     voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
