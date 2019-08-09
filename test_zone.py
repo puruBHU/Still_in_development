@@ -23,7 +23,9 @@ from keras import backend as K
 
 
 from SSD_generate_anchors import generate_ssd_priors
+
 from CustomDataLoaderv3 import DataAugmentor
+
 from utility import *
 from pathlib import Path
 import collections
@@ -67,11 +69,11 @@ priors = generate_ssd_priors(specs)
 batch_size = 4
 
 testloader = DataAugmentor()
-data       = testloader.flow_from_directory(root = root,
-                                            data_file=voc_2007_datafile,
-                                            target_size=300,
-                                            batch_size = batch_size,
-                                            shuffle    = True,
+data       = testloader.flow_from_directory(root        = root,
+                                            data_file   = voc_2007_datafile,
+                                            target_size = 300,
+                                            batch_size  = batch_size,
+                                            shuffle     = True,
                                             num_classes = 21,
                                             priors      = priors
                                             )

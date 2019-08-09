@@ -39,16 +39,12 @@ def intersect(box_a, box_b):
     """
     A = box_a.size(0)
     B = box_b.size(0)
-    
     max_xy = torch.min(box_a[:, 2:].unsqueeze(1).expand(A, B, 2),
                        box_b[:, 2:].unsqueeze(0).expand(A, B, 2))
-    
     min_xy = torch.max(box_a[:, :2].unsqueeze(1).expand(A, B, 2),
                        box_b[:, :2].unsqueeze(0).expand(A, B, 2))
-   
     inter = torch.clamp((max_xy - min_xy), min=0)
-    
-    return inter[:,:,0] * inter[:,:,1]
+    return inter[:, :, 0] * inter[:, :, 1]
 
 
 def jaccard(box_a, box_b):
@@ -72,7 +68,7 @@ def jaccard(box_a, box_b):
     return inter / union  # [A,B]
 
 
-def match_torch(threshold, truths, priors, variances, labels):
+def match(threshold, truths, priors, variances, labels):
     """Match each prior box with the ground truth box of the highest jaccard
     overlap, encode the bounding boxes, then return the matched indices
     corresponding to both confidence and location preds.
@@ -90,8 +86,10 @@ def match_torch(threshold, truths, priors, variances, labels):
         The matched indices corresponding to 1)location and 2)confidence preds.
     """
     # jaccard index
-    truths = point_form(truths)
-    overlaps = jaccard(truths, point_form(priors))
+    overlaps = jaccard(
+        truths,
+        point_form(priors)
+    )
     # (Bipartite Matching)
     # [1,num_objects] best prior for each ground truth
     best_prior_overlap, best_prior_idx = overlaps.max(1, keepdim=True)
@@ -110,8 +108,7 @@ def match_torch(threshold, truths, priors, variances, labels):
     conf = labels[best_truth_idx] + 1         # Shape: [num_priors]
     conf[best_truth_overlap < threshold] = 0  # label as background
     loc = encode(matches, priors, variances)
-#    loc_t[idx] = loc    # [num_priors,4] encoded offsets to learn
-#    conf_t[idx] = conf  # [num_priors] top class label for each prior
+    
     return loc, conf
 
 def encode(matched, priors, variances):

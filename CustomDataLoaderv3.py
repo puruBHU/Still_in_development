@@ -20,7 +20,7 @@ from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
-from box_utils import match_torch
+from box_utils import match as match_torch, point_form
 import torch 
 
 
@@ -238,7 +238,7 @@ class Dataloader(Sequence):
 #        self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
-        self.priors             = torch.Tensor(priors)
+        self.priors             = torch.from_numpy(priors).float()
         
         with open(data_file, 'r') as f:
             self.files = f.read().split()
@@ -307,7 +307,7 @@ class Dataloader(Sequence):
             bndbox_loc = torch.Tensor(ground_truth[:,1:])
             class_ids  = torch.Tensor(ground_truth[:,0])
             
-            loc, class_id  = match_torch(truths = bndbox_loc, 
+            loc, class_id  = match_torch(truths = point_form(bndbox_loc), 
                                          labels = class_ids,
                                          priors = self.priors, 
                                          variances= [0.1, 0.2], 
@@ -393,7 +393,7 @@ class Dataloader(Sequence):
             
             # Since class_id = 0 is reserved for the background, 1 is added to index to genereate 
             # class_id for objects in the VOC dataset
-            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_width, bndbox_height])
+            data.append([VOC_CLASSES.index(obj_class[i]), xc, yc, bndbox_height, bndbox_width])
             
         return np.array(data)
     
