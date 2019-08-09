@@ -225,16 +225,17 @@ def encode(matched = None, priors = None, variances = [0.1, 0.2]):
     Returns:
         encoded boxes: (tensor) shape = [num_priors, 4]
     '''
-    g_cxcy = (matched[:,:2] + matched[:,:2])/2 - priors[:,:2]
+    # dist b/t match center and prior's center
+    g_cxcy = (matched[:, :2] + matched[:, 2:])/2 - priors[:, :2]
     
-    # encoded variance
-    g_cxcy /= (variances[0] * priors[:,2:])
+    # encode variance
+    g_cxcy /= (variances[0] * priors[:, 2:])
     
-    # match width/height with priors width and height
-    g_wh  = (matched[:,2:] - matched[:,:2]) / priors[:,2:]
-    g_wh  = np.log(g_wh) / variances[1]
+    # match wh / prior wh
+    g_wh = (matched[:, 2:] - matched[:, :2]) / priors[:, 2:]
+    g_wh = np.log(g_wh) / variances[1]
     
-    return np.concatenate((g_cxcy, g_wh), axis = -1)
+    return g_cxcy
 
 def decode(loc = None, priors=None, variances = [0.1, 0.2]):
     xy = priors[:,:2] + loc[:,:2] * variances[0] * priors[:,:2]
