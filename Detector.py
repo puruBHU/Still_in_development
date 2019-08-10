@@ -6,6 +6,8 @@ Created on Thu Aug  8 12:24:14 2019
 @author: Purnendu Mishra
 
 """
+import torch
+from box_utils import decode, nms
 import numpy as np
 from utility import non_maximum_supression, decode
 
@@ -44,28 +46,38 @@ class Detect(object):
             
             conf_scores = conf_preds[i].copy()
             
+            
             for cl in range(1, self.num_classes):
                 c_mask = np.greater(conf_scores[cl], self.conf_thresh)
                 scores = conf_scores[cl][c_mask]
+                scores = np.float32(scores)
                 
                 if scores.shape[0] == 0:
                     continue
                 
                 l_mask =  c_mask.reshape(-1,1).repeat(4, axis= -1)   
-                boxes  =  decoded_boxes[l_mask].reshape(-1,4) 
+                boxes  =  decoded_boxes[l_mask].reshape(-1,4).astype(np.float32) 
 #                 print(boxes.shape)
                 
-                ids, count = non_maximum_supression(boxes    =  boxes,
-                                                    scores   = scores, 
-                                                    overlap  =  self.nms_thresh,
-                                                    top_k    = self.top_k)
+                boxes     = torch.from_numpy(boxes).float()
+                scores    = torch.from_numpy(scores).float()
                 
+                ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+#                ids, count = non_maximum_supression(boxes    = boxes,
+#                                                    scores   = scores, 
+#                                                    overlap  = self.nms_thresh,
+#                                                    top_k    = self.top_k)
+##                
 #                 print(ids.shape)
 #                 print(count)
+                ids = np.int32(ids)
+                count = np.int32(count)
                 
+                scores = scores[ids[:count]]
+                scores = np.expand_dims(scores, axis=1)
                 
-#                 output[i, cl, :count] = np.concatenate((temp.reshape(-1,1), 
-#                                                         boxes[ids[:count]]), axis=-1)
+                output[i, cl, :count] = np.concatenate((scores, 
+                                                         boxes[ids[:count]]), axis=-1)
                 
 #         flt = output.ascontiguousarray().reshape(batch_size, -1, 5)
 #         idx  = np.argsort(flt[:,:,0], axis=-1)
@@ -73,4 +85,4 @@ class Detect(object):
         
 #         flt[rank < self.top_k].ex
                 
-        return ids, count
+        return output

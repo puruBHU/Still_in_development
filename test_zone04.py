@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Aug 10 11:39:32 2019
+Created on Sat Aug 10 12:18:54 2019
 
 @author: Purnendu Mishra
-
 """
+
 import torch
 import tensorflow as tf
 
@@ -94,7 +94,7 @@ data_np    = loader_np.flow_from_directory(root     = root,
                                         )
 
 
-sample_np = data_np[0]
+sample_np = data_th[0]
 images_np, targets_np = sample_np
 
 loc_data  = targets_np[:,:,:4]
@@ -102,22 +102,4 @@ conf_data = targets_np[:,:,4:]
 
 a = loc_data[0,:,:]
 
-decoded_np = decode_np(loc = a, priors=priors, variances=[0.1, 0.2]) 
 
-a_      = torch.from_numpy(a).float()
-priors_ = torch.from_numpy(priors).float()
-
-decoded_th = decode_th(loc = a_, priors=priors_, variances=[0.1, 0.2])
-c = decoded_th.numpy() == decoded_np
-print(np.sum(c))
-
-
-scores = np.random.rand(8732,)
-
-scores_ = torch.from_numpy(scores).float()
-
-nms_np = non_maximum_supression(boxes = decoded_np, scores= scores, top_k=200, overlap=0.5)
-nms_th = nms(boxes=decoded_th, scores= scores_, overlap=0.5, top_k=200)
-
-print(nms_th[0])
-print(nms_np[0])

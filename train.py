@@ -30,7 +30,8 @@ from pathlib import Path
 import collections
 from ssd300_model import SSD300
 
-from keras_ssd_loss import SSDLoss
+#from keras_ssd_loss import SSDLoss
+from ssd_loss_function_v2 import CustomLoss
 #from ssd_loss_function_v2 import CustomLoss
 from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint
@@ -58,8 +59,7 @@ std  = np.array( [69.89365, 69.07726, 72.30074], dtype=np.float32)
 target_size = (300,300)
 batch_size  = 4
 
-num_epochs  = 200
-
+num_epochs  = 5
 #%%****************************************************************************
 SSDBoxSizes = collections.namedtuple('SSDBoxSizes', ['min', 'max'])
 
@@ -123,10 +123,12 @@ model.load_weights('VGG_ILSVRC_16_layers_fc_reduced.h5', by_name=True)
 #                 alpha       = 1.0,
 #                 variance    = [0.1,0.2])
 
-loss_fn = SSDLoss()
+SSDLoss = CustomLoss(anchors   = priors, 
+                     alpha     = 1.0
+                     )
 
-model.compile(optimizer = SGD(lr= 1e-4, momentum = 0.9 , nesterov=True, decay=1e-5),
-              loss      = loss_fn.compute_loss)
+model.compile(optimizer = SGD(lr= 1e-2, momentum = 0.9 , nesterov=True, decay=1e-5),
+              loss      = SSDLoss)
 #%%****************************************************************************
 experiment_name = 'test_experiment_01'
 

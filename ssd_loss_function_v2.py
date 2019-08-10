@@ -13,7 +13,7 @@ import numpy as np
 from keras.utils import to_categorical
 
 def smoothL1Loss(target, output):
-    return tf.losses.huber_loss(labels = target, predictions=output)
+    return tf.compat.v1.losses.huber_loss(labels = target, predictions=output)
     
 def classificationLoss(target, output):
     loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=target, logits=output)
@@ -30,13 +30,14 @@ def CustomLoss(anchors      = None,
         conf_pred =  y_pred[:,:, 4:] # Predicted confidence
         loc_pred  =  y_pred[:,:, :4] # Predicted location
         
-        conf_true =  y_true[:,:,-1]  # Ground truth confidence
-        loc_true  =  y_true[:,:,:-1] # Ground truth prediction
+        conf_true =  y_true[:,:,4:]  # Ground truth confidence
+        loc_true  =  y_true[:,:,:4]  # Ground truth location
        
+        conf_true_ = K.argmax(conf_true, axis=-1)
         #Since y_pred is list, batch size will
         num_priors    = anchors.shape[0]
        
-        positives     = K.greater(conf_true , 0)
+        positives     = K.greater(conf_true_ , 0)
         pos           = K.cast(positives, dtype = 'float32')
         
         num_positives = K.sum(pos, axis = 1, keepdims = True)
@@ -53,57 +54,27 @@ def CustomLoss(anchors      = None,
         
         loc_p = K.reshape(loc_pred, shape = (-1,4))
         loc_t = K.reshape(loc_true, shape= (-1, 4))
-
+        
+        # localization loss
         loc_loss  = smoothL1Loss(target = loc_t, output = loc_p)
+        
+        # Classification loss
+        ##  Positive
+        # masking the Tensor
+        conf_pred_pos = K.tf.boolean_mask(conf_pred, pos_idx)
+        conf_true_pos = K.tf.boolean_mask(conf_true, pos_idx)
+        
+        class_loss = classificationLoss(target = conf_true, output=conf_pred)
        
-      
-#        batch_conf = K.reshape(conf_pred, shape = (-1, num_classes))
-#        # Reshape the ground truth confidence to shape (num_priors, 1)
-#        index      = K.reshape(conf_true, shape = (-1,1))
-#        
-#        loss_c     = K.logsumexp(batch_conf) - K.gather()
-#        loss_c     = log_sum_exp(batch_conf) - gather(batch_conf, 1, index)
-#        
-#        # Hard Negative Mining
-#        loss_c     = loss_c.reshape(batch_size, -1)
-#        loss_c[positives] = 0
-#        
-#        loss_idx = np.argsort(loss_c, axis = -1)
-#        loss_idx = np.flip(loss_idx,  axis = -1)
-#        
-#        idx_rank = np.argsort(loss_idx, axis=1)
-#        
-#        num_neg = np.clip(negpos_ratio * num_positives, a_min = None, a_max = positives.shape[1] - 1)
-#        num_neg = num_neg.repeat(num_priors, axis=-1)
-#        
-#        
-#        neg = idx_rank < num_neg
-#       
-#        pos_idx = positives.reshape(positives.shape[0], positives.shape[1], 1).repeat(num_classes, axis=-1)
-#        neg_idx = neg.reshape(neg.shape[0], neg.shape[1], 1).repeat(num_classes, axis=-1)
-#        
-#
-#        # Predicted confidence
-#        conf_p = conf_data[pos_idx + neg_idx]
-#        conf_p = conf_p.reshape(-1, num_classes)
-#        
-#        # Transform target confidence in one-hot form
-#        
-#        conf_t = to_categorical(conf_t, num_classes)
-#        conf_target = conf_t[pos_idx + neg_idx]
-#        conf_target = conf_target.reshape(-1, num_classes)
-#
-#        conf_p = K.cast_to_floatx(conf_p)
-#        conf_target = K.cast_to_floatx(conf_target)
-#        
-#        loss_confidence = 0 #classificationLoss(y_true = conf_target, y_pred = conf_p)
-
+        # # Compute max conf across batch for hard negative mining
+#        batch_conf = K.reshape(conf_pred, shape=(-1, num_classes))
+        
         N = K.sum(num_positives)
         N = K.maximum(1.0, N)
         
        
-        loss =  loc_loss/ N
-        
+        loss =  class_loss + alpha * loc_loss
+        loss /= N
       
         return loss
     return SSDLoss

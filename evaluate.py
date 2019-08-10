@@ -17,10 +17,10 @@ import numpy as np
 from utility import *
 
 import collections
-from nms import nms
 
 from SSD_generate_anchors import generate_ssd_priors
 import matplotlib.pyplot as plt
+from Detector import Detect
 #%%****************************************************************************
 target_size = (300,300)
 
@@ -50,7 +50,7 @@ specs = [
     Spec(1, 300, SSDBoxSizes(264, 315), [2])
 ]
 
-priors = generate_ssd_priors(specs)
+priors = generate_ssd_priors(specs).astype(np.float32)
 
 #%%****************************************************************************
 def preprocess_image(image_path, target_size=(300, 300), mean = None, std = None):
@@ -80,32 +80,64 @@ model.load_weights('checkpoints/test_checkpoint.hdf5')
 
 #%%****************************************************************************
 
-image_path  =  Path.cwd()/'test_images'/'000012.jpg'
+image_path  =  Path.cwd()/'test_images'/'000007.jpg'
 
 image, input_img = preprocess_image(image_path = image_path,
                                     mean = mean, 
                                     std = std)
 
+h, w,c = image.shape
 #%%****************************************************************************
 prediction  = model.predict(input_img) 
-prediction  = np.squeeze(prediction, axis=0)
+loc_data    = prediction[:,:,:4]
+conf_data   = prediction[:,:,4:]
 
-loc_pred  = prediction[:,:4]
-conf_pred = prediction[:,4:]
 
-predicted_class_id = np.argmax(conf_pred, axis = -1)
-predicted_classes = np.unique(predicted_class_id)
+Detector   =  Detect(num_classes=21, bkg_label  = 0, top_k=200, conf_thresh=0.01, nms_thresh=0.35)
+detections =  Detector.forward(loc_data = loc_data, conf_data=conf_data, priors=priors)
 
-loc_pred_ = decode(loc =loc_pred , priors=priors, variances= [0.1,0.2])
+#print(np.unique(detections[:,:,:,0]))
 
-selected_boxes = nms(boxes = loc_pred_, overlapThresh=0.5)
+labelmap = (  # always index 0
+    'aeroplane', 'bicycle', 'bird', 'boat',
+    'bottle', 'bus', 'car', 'cat', 'chair',
+    'cow', 'diningtable', 'dog', 'horse',
+    'motorbike', 'person', 'pottedplant',
+    'sheep', 'sofa', 'train', 'tvmonitor')
 
-xmin, ymin, xmax, ymax = TransformCoordinates(boxes = selected_boxes)
+coordinates = []
 
-for i in range(selected_boxes.shape[0]):
-    cv2.rectangle(image, (xmin[i], ymin[i]), (xmax[i], ymax[i]), (255, 0, 0), 2)
-
+for i in range(detections.shape[1]):
+    j = 0
+    while detections[0,i,j,0] >= 0.2:
+#        print('Hello')
+        score = [detections[0,i,j,0]]
+        label_name = [str(labelmap[i-1])]
+        pt         = (detections[0,i,j,1:])
+        coords     = [pt[0], pt[1], pt[2], pt[3]]
+        coords.append(label_name)
+        coords.append(score)
+        coordinates.append(coords)
+        
+        j += 1
+        
+        
+    for coord in coordinates:
+        xt, yt, xb, yb, name, score = coord[:]
+        xmin = int(xt * w)
+        ymin = int(yt * h)
+        xmax = int(xb * w)
+        ymax = int(yb * h)
+            
+        cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (255,0,0), 2)
+        
+#        cv2.putText(img = image, 
+#                    text = '{} ({:4f})'.format(name.upper(), score), 
+#                    org = (xmin + 2, ymin + 15), 
+#                    fontFace = font,
+#                    fontScale = 1,
+#                    color = (0,255,0))
+        
 plt.imshow(image)
 plt.show()
-
-
+        
