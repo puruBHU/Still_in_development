@@ -20,7 +20,7 @@ from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
-from utility import match
+from utility import match, point_form
 
 
 VOC_CLASSES = (  # always index 0
@@ -306,7 +306,7 @@ class Dataloader(Sequence):
             bndbox_loc = ground_truth[:,1:]
             class_ids  = ground_truth[:,0]
             
-            loc, class_id  = match(truths = bndbox_loc, 
+            loc, class_id  = match(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
                                    labels = class_ids,
                                    priors = self.priors, 
                                    variance= [0.1, 0.2], 
@@ -327,7 +327,7 @@ class Dataloader(Sequence):
         batch_y = np.array(batch_y, dtype = np.float32)
         
         
-        return (batch_x, batch_y)
+        return batch_x, batch_y
             
     
     def on_epoch_end(self):

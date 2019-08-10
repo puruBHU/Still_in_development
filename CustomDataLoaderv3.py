@@ -307,7 +307,7 @@ class Dataloader(Sequence):
             bndbox_loc = torch.Tensor(ground_truth[:,1:])
             class_ids  = torch.Tensor(ground_truth[:,0])
             
-            loc, class_id  = match_torch(truths = point_form(bndbox_loc), 
+            loc, class_id  = match_torch(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
                                          labels = class_ids,
                                          priors = self.priors, 
                                          variances= [0.1, 0.2], 

@@ -177,10 +177,8 @@ def match(truths      = None,
     # Both Truth and Priors are in the form (cx, cy, w, h)
     # Convert to form (xmin, ymin,xmax, ymax) before getting IOU
    
-    truths = point_form(truths)
-    priors = point_form(priors)
-    
-    iou = jaccard(truths, priors)
+#    truths = point_form(truths)  
+    iou = jaccard(truths, point_form(priors))
     
     best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
     best_prior_idx     = np.argmax(iou, axis =-1)
@@ -246,6 +244,7 @@ def decode(loc = None, priors=None, variances = [0.1, 0.2]):
         variances: (list[float]) Variances of priorboxes
     Return:
         decoded bounding box predictions
+        output form:  (xmin, ymin, xmax, ymax)
     """
     boxes = np.concatenate((
         priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],

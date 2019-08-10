@@ -90,6 +90,7 @@ def match(threshold, truths, priors, variances, labels):
         truths,
         point_form(priors)
     )
+    
     # (Bipartite Matching)
     # [1,num_objects] best prior for each ground truth
     best_prior_overlap, best_prior_idx = overlaps.max(1, keepdim=True)

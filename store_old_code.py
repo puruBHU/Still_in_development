@@ -1,15 +1,75 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug  8 11:09:33 2019
+Created on Fri Aug  9 20:12:42 2019
 
-@author: Purnendu Mishra
-
-Non_ maximum _suprresion from 
-https://www.pyimagesearch.com/2014/11/17/non-maximum-suppression-object-detection-python/
+@author: vlsilab
 """
 
-import numpy as np
+def match(truths      = None, 
+          labels     = None, 
+          priors     = None, 
+          variance   = None, 
+          threshold  = 0.5,
+#          idx        = None,
+#          loc_t      = None,
+#          conf_t     = None
+        ):
+    """
+    Match each prior (or anchor) box with the ground truth box of the ighest jaccard overlap, 
+    encode the bounding boxes, then return the matched indices correspoding to both confidence 
+    and location predictions.
+    
+    Both Truth and Priors are in the form (cx, cy, w, h)
+    Convert to form (xmin, ymin,xmax, ymax) before getting IOU
+    
+    Arguments:
+        threshold: (float) The overlap threshold used when matching boxes
+        truth    : (tensor) Ground truth boxes, sahep [num_obj, num_priors]
+        priors   : (tensor)  Prior boxes from prior boxes layers, shape [num_prioirs, 4]
+        variance : (tensor) Variance corresponding to each prioir coordinate, shape [num_priors, 4]
+        
+        labels   : (tensor) All the class label for the image, shape : [num_obj]
+        
+        loc_t    : (tensor) Tensor to be filled with encoded location targets
+        conf_t   : (tensor) Tensor to be filled with ematched indices for conf preds.
+        idx     : (int) current batch index
+        
+    Returns:
+        The match indices corresponding to 
+            1) location 
+            2) cofidence predcition
+    """
+    # Ground truth are  in form (xc, yc, w, h)
+    # convert it to form (xmin, ymin, xmax, ymax)
+    truths = point_form(truths)
+    
+    iou = jaccard(truths, point_form(priors))
+    
+    best_prior_overlap = np.amax(iou, axis=-1).astype(np.float32)
+    best_prior_idx     = np.argmax(iou, axis =-1)
+    
+#    print(best_prior_overlap.shape)
+#    print(best_prior_idx.shape)
+
+    best_truth_overlap = np.amax(iou, axis=0).astype(np.float32)
+    best_truth_idx     = np.argmax(iou, axis = 0)
+    best_truth_overlap = index_fill(best_truth_overlap, best_prior_idx, axis=0, value=2)
+#    print(best_truth_overlap.shape)
+#    print(best_truth_idx.shape)
+
+    for j in range(best_prior_idx.shape[0]):
+        best_truth_idx[best_prior_idx[j]] = j
+    
+    matches = truths[best_truth_idx]
+    conf    = labels[best_truth_idx]
+
+    conf[best_truth_overlap < threshold] = 0
+    
+    loc       = encode(matched=matches, priors=priors, variances=variance)
+     
+    return loc, conf
+
 
 def nms(boxes, overlapThresh):
     """ Calcalte non maximum supression
