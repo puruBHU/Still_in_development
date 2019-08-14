@@ -20,7 +20,7 @@ from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
-from utility import match
+from utility import match, point_form, center_form
 
 
 VOC_CLASSES = (  # always index 0
@@ -121,16 +121,35 @@ class DataAugmentor(object):
             y = cv2.warpAffine(y,  M, (w,h))
             
             
-        if self.horizontal_flip:
+        if self.horizontal_flip:    
             if np.random.random() < 0.5:
+                print('horizontal flipped')
                 x = np.fliplr(x)
-                y = np.fliplr(y)
-
+                # To flip the bounding box coordinate 
+                # subtract center coordinates from 1.0
+                # Assuming boxes are normalized and have form (xc, yc, h, w)
+                bboxes = point_form(y)
+               
+                xmin = bboxes[:,0]
+                xmax = bboxes[:,2]
+                
+                xmin_ = 1 - xmax
+                xmax_ = 1 - xmin
+                
+                bboxes[:,0] = xmin_
+                bboxes[:,2] = xmax_
+                
+                y = center_form(bboxes)
     
         if self.vertical_flip:
             if np.random.random() < 0.5:
                 x = np.flipud(x)
-                y = np.flipud(y)
+                # To flip the bounding box coordinate 
+                # subtract center coordinates from 1.0
+                # Assuming boxes are normalized and have form (xc, yc, h, w)
+                yc = y[:,1]
+                d  = 0.5 - yc
+                y[:,1] = 0.5 + d
            
         
         if self.zoom_range[0] == 1 and self.zoom_range[1] == 1:
@@ -146,7 +165,8 @@ class DataAugmentor(object):
     
     def flow_from_directory(self,
                             root        = None, 
-                            data_file   = None,
+                            data_folder   = None,
+                            mode          = 'train',
                             target_size = (300, 300),
 #                            color_space = None,
                             batch_size  = 8,
@@ -157,16 +177,17 @@ class DataAugmentor(object):
                             priors      = None):
         return Dataloader(
                     root,
-                    data_file,
                     self,
+                    data_folder =  data_folder,
+                    mode        = mode,
                     target_size = target_size,
 #                    color_space = color_space,
                     batch_size  = batch_size,
                     num_classes = num_classes,
                     shuffle     = shuffle,
                     data_format = self.data_format,
-                    seed        = seed
-#                    priors      = priors
+                    seed        = seed,
+                    priors      = priors
                     )
     
     def standardize(self,x):
@@ -201,27 +222,37 @@ class DataAugmentor(object):
 class Dataloader(Sequence):
     ''' Data generator for keras to be used with model.fit_generator
     
-    #Arguments:
-        csv_file:
+    Args:
+        root : (str) path to dataset folder
+        data_folder: (slist) file containing the names of trainable data
+        mode       : (str) train or validate
         batch_size: Integere, size of a batch
         shuffle: Boolean, whether to shuffle the data between epochs
         target_size = Either 'None' (default to original size) or
             tuple or int '(image height, image width)'
             
+        
+            
+    
+    Returns:
+        tuple: Batch_x, Batch_y 
+        shape  Batch_x: batch_size, image_height, image_width, 3
+        shape  Batch_y: batch_size, no.of  priors, 4 + no.of classes      
     '''
     
     def __init__(self,
-                 root      = None,
-                 data_file = None,
+                 root        = None,
                  image_data_generator=None,
+                 data_folder  = ['VOC2007', 'VOC2012'],
+                 mode         = 'train',
                  batch_size   = None, 
                  shuffle      = True,
                  target_size  = None,
 #                 color_space  = None, 
                  data_format  = 'channel_last',
                  num_classes  = 21,
-                 seed         = None):
-#                 priors       = None):
+                 seed         = None,
+                 priors       = None):
         
 #         super(Dataloader, self).__init__(self)
         
@@ -237,11 +268,32 @@ class Dataloader(Sequence):
 #        self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
-#        self.priors             = priors
+        self.priors             = priors
         
-        with open(data_file, 'r') as f:
-            self.files = f.read().split()
+        self.files = []
+        
+        if len(data_folder) == 0:
+            raise ValueError('No path provide, please provide name of VOC dataste, for example ["VOC2007"] ')
+
+#%%        
+        for folder in data_folder:
+            path    = self.root_path/folder
             
+            if mode == 'train':
+                data_file     = path/'ImageSets'/'Main'/'train.txt'
+            elif mode == 'val':
+                data_file     = path/'ImageSets'/'Main'/'val.txt'     
+            elif mode == 'test':
+                data_file     = path/'ImageSets'/'Main'/'test.txt'
+        
+            with open(data_file, 'r') as f:
+                file_names = f.read().split()
+                
+            for t in file_names:
+                temp = (folder, t)
+                self.files.append(temp)
+                
+#%%            
         if isinstance(target_size, int):
             self.target_size = (target_size, target_size)
             
@@ -260,11 +312,11 @@ class Dataloader(Sequence):
          
         self.on_epoch_end()
 
-        
+#%%        
     def __len__(self):
         return int(np.ceil(len(self.files) / float(self.batch_size)))
     
-    
+#%%    
     def __getitem__(self, idx):
 
         # total number of samples in the dataset
@@ -285,10 +337,10 @@ class Dataloader(Sequence):
         
         for m, files in enumerate(file_names):
             
-#            labels           = np.zeros(shape = (num_priors, 5), dtype = np.float32)
+#            labels           = np.zeros(shape = (num_priors, self.num_classes + 4), dtype = np.float32)
                        
-            image_path       = self.root_path/'JPEGImages'/files
-            annotation_path  = self.root_path/'Annotations'/files
+            image_path       = self.root_path/files[0]/'JPEGImages'/files[1]
+            annotation_path  = self.root_path/files[0]/'Annotations'/files[1]
                         
             image_file        = image_path.with_suffix('.jpg')
             annotation_file   = annotation_path.with_suffix('.xml')
@@ -297,33 +349,41 @@ class Dataloader(Sequence):
             image = load_image(image_file, target_size = self.target_size)
             image = np.array(image, dtype = np.float32)
             
-            image = self.image_data_generator.standardize(image)
+            
             # Get the ground truth
             self.ReadVOCAnnotations(annotation_file = annotation_file)
             
             ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
-#            class_ids  = ground_truth[:,0]
+            
+            image, gt = self.image_data_generator.random_transforms((image, ground_truth[:,1:]))
+            image = self.image_data_generator.standardize(image)
+            
 #            bndbox_loc = ground_truth[:,1:]
+#            class_ids  = ground_truth[:,0]
             
-          
-#            labels[:,:4], labels[:,-1] = match(truths = bndbox_loc, 
-#                                           labels = class_ids,
-#                                           priors = self.priors, 
-#                                           variance= [0.1, 0.2], 
-#                                           threshold = 0.5)
+#            loc, class_id  = match(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
+#                                   labels = class_ids,
+#                                   priors = self.priors, 
+#                                   variance= [0.1, 0.2], 
+#                                   threshold = 0.5)
             
-           
-            
-            
+#            class_id  = to_categorical(class_id, num_classes=self.num_classes)
+#            
+#            labels[:,:4] = loc
+#            labels[:,4:] = class_id
+#            
+#           
+#            
+#            
             batch_x.append(image)
             batch_y.append(ground_truth)
-        
+#        
         batch_x = np.array(batch_x, dtype = np.float32)
-#        batch_y = np.array(batch_y)
+        batch_y = np.array(batch_y, dtype = np.float32)
         
         
-        return (batch_x, batch_y)
+        return batch_x, batch_y
             
     
     def on_epoch_end(self):
@@ -388,24 +448,22 @@ class Dataloader(Sequence):
             
             # Since class_id = 0 is reserved for the background, 1 is added to index to genereate 
             # class_id for objects in the VOC dataset
-            # output format : (class_id, xc, yc, h , w)
-            
-            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc, bndbox_height, bndbox_width])
+            data.append([VOC_CLASSES.index(obj_class[i]) + 1.0, xc, yc,bndbox_width, bndbox_height ])
             
         return np.array(data)
-    
+#%%  
 if __name__ == '__main__':
 #    root                = Path.home()/'data'/'VOCdevkit/VOC2007'
-    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
-    voc_image_path      = root/'JPEGImages'
-    voc_annotation_path = root/'Annotations'
-    voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
+    root   = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'
+#    voc_image_path      = root/'JPEGImages'
+#    voc_annotation_path = root/'Annotations'
+#    voc_trainval_path   = root/'ImageSets'/'Main'/'train.txt'
     
     tester = DataAugmentor()
     generator = tester.flow_from_directory(root        = root,
-                                           data_file   = voc_trainval_path,
+                                           data_folder = ['VOC2012'],
                                            target_size = 300,
-                                           batch_size  = 4,
+                                           batch_size  = 1,
                                            shuffle = True)
     
     sample = generator[0]

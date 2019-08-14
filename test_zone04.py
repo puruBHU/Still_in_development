@@ -5,101 +5,66 @@ Created on Sat Aug 10 12:18:54 2019
 
 @author: Purnendu Mishra
 """
-
-import torch
-import tensorflow as tf
-
-from keras.backend.tensorflow_backend import set_session
-##********************************************************
-## For GPU
-#
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-#config.gpu_options.per_process_gpu_memory_fraction = 0.50
-set_session(tf.Session(config=config))
-
-#
-##********************************************************
-
-from keras import backend as K
-
-
-from SSD_generate_anchors import generate_ssd_priors
-
-from CustomDataLoaderv3 import DataAugmentor as DA1
-from CustomDataLoader import DataAugmentor as DA2
-
-from utility import match as match_np
-from utility import decode as decode_np
-from utility import non_maximum_supression
-
-from box_utils import match as match_th
-from box_utils import decode as decode_th
-from box_utils import nms
-
-from pathlib import Path
-import collections
-from ssd300_model import SSD300
-from skimage.io import imread, imshow
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
-#root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
-voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
-
-voc_2007_images      = root/'JPEGImages'
-voc_2007_annotations = root/'Annotations'
-
-
-SSDBoxSizes = collections.namedtuple('SSDBoxSizes', ['min', 'max'])
-
-Spec = collections.namedtuple('Spec', ['feature_map_size', 'shrinkage', 'box_sizes', 
-                                       'aspect_ratios'])
-
-# the SSD orignal specs
-specs = [
-    Spec(38, 8, SSDBoxSizes(30, 60), [2]),
-    Spec(19, 16, SSDBoxSizes(60, 111), [2, 3]),
-    Spec(10, 32, SSDBoxSizes(111, 162), [2, 3]),
-    Spec(5, 64, SSDBoxSizes(162, 213), [2, 3]),
-    Spec(3, 100, SSDBoxSizes(213, 264), [2]),
-    Spec(1, 300, SSDBoxSizes(264, 315), [2])
-]
-
-priors = generate_ssd_priors(specs).astype(np.float32)
+from pathlib import Path
+from random import shuffle
+from CustomDataLoaderTesting import DataAugmentor
+from utility import point_form
 
 
-batch_size = 4
+root = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'
 
-loader_th  = DA1()
-data_th    = loader_th.flow_from_directory(root     = root,
-                                        data_file   = voc_2007_datafile,
-                                        target_size = 300,
-                                        batch_size  = batch_size,
-                                        shuffle     = False,
-                                        num_classes = 21,
-                                        priors      = priors
-                                        )
+loader = DataAugmentor(horizontal_flip=True,
+                       vertical_flip  =False)
+
+batch_size = 1
+generator = loader.flow_from_directory(root         = root,
+                                       data_folder  = ['VOC2007', 'VOC2012'],
+                                       target_size  = (300,300),
+                                       batch_size   = batch_size,
+                                       shuffle      = True)
+
+image, target = generator[0]
+
+#def point_form(boxes):
+#    
+#    #xmin  = xc - w/2
+#    #xmax = xmin + w
+#
+#    xc = boxes[0]
+#    yc = boxes[1]
+#    
+#    h  = boxes[2]
+#    w  = boxes[3]
+#    
+#    xmin = xc - w/2
+#    xmax = xmin + w
+#    
+#    ymin = yc - h/2
+#    ymax = ymin + h
+#    
+#    return xmin, ymin, xmax, ymax 
 
 
-loader_np  = DA2()
-data_np    = loader_np.flow_from_directory(root     = root,
-                                        data_file   = voc_2007_datafile,
-                                        target_size = 300,
-                                        batch_size  = batch_size,
-                                        shuffle     = False,
-                                        num_classes = 21,
-                                        priors      = priors
-                                        )
+for i in range(batch_size):
+    image = image[i].astype(np.uint8)
+    h, w, c = image.shape 
+    
+    boxes = target[i]
+    boxes   = point_form(boxes[:,1:])
+    for j in range(boxes.shape[0]):
+        box =  boxes[j,:]
+        xmin = int(box[0] * w)
+        ymin = int(box[1] * h)
 
-
-sample_np = data_th[0]
-images_np, targets_np = sample_np
-
-loc_data  = targets_np[:,:,:4]
-conf_data = targets_np[:,:,4:]
-
-a = loc_data[0,:,:]
-
-
+        xmax = int(box[2] * w)
+        ymax = int(box[3] * h)
+        
+        cv2.rectangle(image,(xmax ,ymax), (xmin,ymin ), (255,0,0), 2)
+    
+    plt.imshow(image)
+    
+plt.show()
