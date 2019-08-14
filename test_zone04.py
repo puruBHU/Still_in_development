@@ -17,10 +17,10 @@ from utility import point_form
 
 root = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'
 
-loader = DataAugmentor(horizontal_flip=False,
-                       vertical_flip  =False)
+loader = DataAugmentor(horizontal_flip=True,
+                       )
 
-batch_size = 1
+batch_size = 5
 generator = loader.flow_from_directory(root         = root,
                                        data_folder  = ['VOC2007', 'VOC2012'],
                                        target_size  = (300,300),
@@ -29,36 +29,19 @@ generator = loader.flow_from_directory(root         = root,
 
 image, target = generator[0]
 
-#def point_form(boxes):
-#    
-#    #xmin  = xc - w/2
-#    #xmax = xmin + w
-#
-#    xc = boxes[0]
-#    yc = boxes[1]
-#    
-#    h  = boxes[2]
-#    w  = boxes[3]
-#    
-#    xmin = xc - w/2
-#    xmax = xmin + w
-#    
-#    ymin = yc - h/2
-#    ymax = ymin + h
-#    
-#    return xmin, ymin, xmax, ymax 
 
-fig = plt.figure(figsize=(10,10))
+
+fig = plt.figure(figsize=(15,15))
 
 for i in range(batch_size):
-    image  = image[i].astype(np.uint8)
-    image2 = image[:,::-1, :]
-    
-    
-    h, w, c = image.shape 
-    
-    boxes = target[i]
+    image_  = image[i].astype(np.uint8)
+    h, w,c  = image_.shape
+    boxes   = target[i]
+#    print(boxes)
     boxes   = point_form(boxes[:,1:])
+    boxes = np.array(boxes)
+    
+    ax = fig.add_subplot(batch_size,1,i+1)
    
     for j in range(boxes.shape[0]):
         box =  boxes[j,:]
@@ -68,17 +51,10 @@ for i in range(batch_size):
         xmax = int(box[2] * w)
         ymax = int(box[3] * h)
         
-        # horizontal fli
-        xmax_ = w - xmin
-        xmin_ = w - xmax
+  
+        cv2.rectangle(image_, (xmin,ymin ), (xmax ,ymax),  (255,0,0), 2)
         
-        cv2.rectangle(image, (xmin,ymin ), (xmax ,ymax),  (255,0,0), 2)
-        cv2.rectangle(image2,(xmin_,ymin), (xmax_ ,ymax), (255,0,0), 2)
-        
-    plt.subplot(1,2,1)
-    plt.imshow(image)
-    
-    plt.subplot(1,2,2)
-    plt.imshow(image2)
-    
+#    plt.subplot(1,batch_size,i+1)
+    ax.imshow(image_)
+      
 plt.show()

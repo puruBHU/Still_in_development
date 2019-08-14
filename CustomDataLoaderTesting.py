@@ -16,7 +16,7 @@ from skimage import io,color
 from keras import backend as K
 from keras.utils import Sequence, to_categorical
 
-from keras.preprocessing import image
+#from keras.preprocessing import image
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
@@ -123,43 +123,30 @@ class DataAugmentor(object):
             
         if self.horizontal_flip:    
             if np.random.random() < 0.5:
-                print('horizontal flipped')
-                x = np.fliplr(x)
-                # To flip the bounding box coordinate 
-                # subtract center coordinates from 1.0
-                # Assuming boxes are normalized and have form (xc, yc, h, w)
-                bboxes = point_form(y)
-               
-                xmin = bboxes[:,0]
-                xmax = bboxes[:,2]
-                
-                xmin_ = 1 - xmax
-                xmax_ = 1 - xmin
-                
-                bboxes[:,0] = xmin_
-                bboxes[:,2] = xmax_
-                
-                y = center_form(bboxes)
+                x      = x[:,::-1,:] #flip x along x axis
     
+                xc = y[:,0]
+                y[:,0] = 1.0 - xc
+                
+                
         if self.vertical_flip:
             if np.random.random() < 0.5:
-                x = np.flipud(x)
+                print('Vertical flipped')
+                x = x[::-1,:,:]
                 # To flip the bounding box coordinate 
                 # subtract center coordinates from 1.0
                 # Assuming boxes are normalized and have form (xc, yc, h, w)
                 yc = y[:,1]
-                d  = 0.5 - yc
-                y[:,1] = 0.5 + d
+                y[:,1] = 1 - yc
            
         
-        if self.zoom_range[0] == 1 and self.zoom_range[1] == 1:
-            zx, zy = 1, 1
-        else:
-            zx, zy = np.random.uniform(self.zoom_range[0], self.zoom_range[1], 2)
-            
-        x = image.random_zoom(x, (zx,zy), channel_axis=self.channel_axis)
-        y = np.expand_dims(y, axis=2)
-        y = image.random_zoom(y, (zx,zy), channel_axis=self.channel_axis)
+#        if self.zoom_range[0] == 1 and self.zoom_range[1] == 1:
+#            zx, zy = 1, 1
+#        else:
+#            zx, zy = np.random.uniform(self.zoom_range[0], self.zoom_range[1], 2)
+#            
+#        x = image.random_zoom(x, (zx,zy), channel_axis=self.channel_axis)
+#        y = image.random_zoom(y, (zx,zy), channel_axis=self.channel_axis)
         
         return (x,y)
     
@@ -355,9 +342,8 @@ class Dataloader(Sequence):
             
             ground_truth = np.array(self.TransformBNDBoxes(), dtype=np.float32)
             
-            
-            image, gt = self.image_data_generator.random_transforms((image, ground_truth[:,1:]))
-            image = self.image_data_generator.standardize(image)
+            image, ground_truth[:,1:] = self.image_data_generator.random_transforms((image, ground_truth[:,1:]))
+            image     = self.image_data_generator.standardize(image)
             
 #            bndbox_loc = ground_truth[:,1:]
 #            class_ids  = ground_truth[:,0]
@@ -380,7 +366,7 @@ class Dataloader(Sequence):
             batch_y.append(ground_truth)
 #        
         batch_x = np.array(batch_x, dtype = np.float32)
-        batch_y = np.array(batch_y, dtype = np.float32)
+        batch_y = np.array(batch_y)
         
         
         return batch_x, batch_y
