@@ -17,7 +17,7 @@ from utility import point_form
 
 root = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'
 
-loader = DataAugmentor(horizontal_flip=True,
+loader = DataAugmentor(horizontal_flip=False,
                        vertical_flip  =False)
 
 batch_size = 1
@@ -48,13 +48,18 @@ image, target = generator[0]
 #    
 #    return xmin, ymin, xmax, ymax 
 
+fig = plt.figure(figsize=(10,10))
 
 for i in range(batch_size):
-    image = image[i].astype(np.uint8)
+    image  = image[i].astype(np.uint8)
+    image2 = image[:,::-1, :]
+    
+    
     h, w, c = image.shape 
     
     boxes = target[i]
     boxes   = point_form(boxes[:,1:])
+   
     for j in range(boxes.shape[0]):
         box =  boxes[j,:]
         xmin = int(box[0] * w)
@@ -63,8 +68,17 @@ for i in range(batch_size):
         xmax = int(box[2] * w)
         ymax = int(box[3] * h)
         
-        cv2.rectangle(image,(xmax ,ymax), (xmin,ymin ), (255,0,0), 2)
-    
+        # horizontal fli
+        xmax_ = w - xmin
+        xmin_ = w - xmax
+        
+        cv2.rectangle(image, (xmin,ymin ), (xmax ,ymax),  (255,0,0), 2)
+        cv2.rectangle(image2,(xmin_,ymin), (xmax_ ,ymax), (255,0,0), 2)
+        
+    plt.subplot(1,2,1)
     plt.imshow(image)
+    
+    plt.subplot(1,2,2)
+    plt.imshow(image2)
     
 plt.show()
