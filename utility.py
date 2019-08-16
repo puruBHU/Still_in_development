@@ -59,9 +59,9 @@ def center_form(boxes):
     yc = (ymin + ymax) / 2
     """
     center_coordinates = (boxes[:,:2] + boxes[:,2:]) / 2
-    width_hegight      = (boxes[:,2:] - boxes[:,:2]) / 2
+    width_height      = (boxes[:,2:] - boxes[:,:2]) / 2
     
-    return np.concatenate((center_coordinates, width_hegight), axis=1)
+    return np.concatenate((center_coordinates, width_height), axis=1)
 
 
 def intersect(box_a, box_b):

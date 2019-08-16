@@ -61,8 +61,8 @@ def generate_ssd_priors(specs, image_size=300, clip=True):
             boxes.append([
                 x_center,
                 y_center,
-                h,
-                w
+                w,
+                h
             ])
             
             # big sized square box
@@ -71,8 +71,8 @@ def generate_ssd_priors(specs, image_size=300, clip=True):
             boxes.append([
                 x_center,
                 y_center,
-                h,
-                w
+                w,
+                h
             ])           
             
             # change h/w ratio of the small sized box
@@ -85,14 +85,14 @@ def generate_ssd_priors(specs, image_size=300, clip=True):
                 boxes.append([
                     x_center,
                     y_center,
+                    w / ratio,
                     h * ratio,
-                    w / ratio
                 ])
                 boxes.append([
                     x_center,
                     y_center,
+                    w * ratio,
                     h / ratio,
-                    w * ratio
                 ])
             
 
