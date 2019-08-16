@@ -59,15 +59,15 @@ class Detect(object):
                 boxes  =  decoded_boxes[l_mask].reshape(-1,4).astype(np.float32) 
 #                 print(boxes.shape)
                 
-                boxes     = torch.from_numpy(boxes).float()
-                scores    = torch.from_numpy(scores).float()
-                
-                ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
-#                ids, count = non_maximum_supression(boxes    = boxes,
-#                                                    scores   = scores, 
-#                                                    overlap  = self.nms_thresh,
-#                                                    top_k    = self.top_k)
-##                
+#                boxes     = torch.from_numpy(boxes).float()
+#                scores    = torch.from_numpy(scores).float()
+#                
+#                ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+                ids, count = non_maximum_supression(boxes    = boxes,
+                                                    scores   = scores, 
+                                                    overlap  = self.nms_thresh,
+                                                    top_k    = self.top_k)
+               
 #                 print(ids.shape)
 #                 print(count)
                 ids = np.int32(ids)

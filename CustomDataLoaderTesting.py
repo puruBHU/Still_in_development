@@ -324,7 +324,7 @@ class Dataloader(Sequence):
         
         for m, files in enumerate(file_names):
             
-            labels           = np.zeros(shape = (num_priors, self.num_classes + 4), dtype = np.float32)
+#            labels           = np.zeros(shape = (num_priors, self.num_classes + 4), dtype = np.float32)
                        
             image_path       = self.root_path/files[0]/'JPEGImages'/files[1]
             annotation_path  = self.root_path/files[0]/'Annotations'/files[1]
@@ -348,24 +348,24 @@ class Dataloader(Sequence):
             bndbox_loc = ground_truth[:,1:]
             class_ids  = ground_truth[:,0]
             
-            loc, class_id  = match(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
-                                   labels = class_ids,
-                                   priors = self.priors, 
-                                   variance= [0.1, 0.2], 
-                                   threshold = 0.5)
-            
-            class_id  = to_categorical(class_id, num_classes=self.num_classes)
-            
-            labels[:,:4] = loc
-            labels[:,4:] = class_id
-            
+#            loc, class_id  = match(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
+#                                   labels = class_ids,
+#                                   priors = self.priors, 
+#                                   variance= [0.1, 0.2], 
+#                                   threshold = 0.5)
+#            
+#            class_id  = to_categorical(class_id, num_classes=self.num_classes)
+#            
+#            labels[:,:4] = loc
+#            labels[:,4:] = class_id
+#            
           
             
             batch_x.append(image)
-            batch_y.append(labels)   
+            batch_y.append(ground_truth)   
             
         batch_x = np.array(batch_x, dtype = np.float32)
-        batch_y = np.array(batch_y, dtype = np.float32)
+        batch_y = np.array(batch_y)
         
         
         return batch_x, batch_y
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     
     tester = DataAugmentor()
     generator = tester.flow_from_directory(root        = root,
-                                           data_folder = ['VOC2012'],
+                                           data_folder = ['VOC2007','VOC2012'],
                                            target_size = 300,
                                            batch_size  = 1,
                                            shuffle = True)

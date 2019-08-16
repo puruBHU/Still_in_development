@@ -20,8 +20,10 @@ from keras.utils import Sequence, to_categorical
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from random import shuffle
-from utility import match, point_form, center_form
+#from utility import match, point_form, center_form
 
+import torch
+from box_utils import match, point_form
 
 VOC_CLASSES = (  # always index 0
     'aeroplane', 'bicycle', 'bird', 'boat',
@@ -255,7 +257,7 @@ class Dataloader(Sequence):
 #        self.color_space        = color_space
         self.data_format        = data_format
         self.seed               = seed
-        self.priors             = priors
+        self.priors             = torch.from_numpy(priors).float()
         
         self.files = []
         
@@ -345,13 +347,18 @@ class Dataloader(Sequence):
             image, ground_truth[:,1:] = self.image_data_generator.random_transforms((image, ground_truth[:,1:]))
             image     = self.image_data_generator.standardize(image)
             
+            image        = torch.from_numpy(image).float()
+            ground_truth = torch.from_numpy(ground_truth).float()
+            
             bndbox_loc = ground_truth[:,1:]
             class_ids  = ground_truth[:,0]
             
-            loc, class_id  = match(truths = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
-                                   labels = class_ids,
-                                   priors = self.priors, 
-                                   variance= [0.1, 0.2], 
+            
+            
+            loc, class_id  = match(truths    = point_form(bndbox_loc), # Convert to from (xmin, ymin, xmax, ymax) 
+                                   labels    = class_ids,
+                                   priors    = self.priors, 
+                                   variances  = [0.1, 0.2], 
                                    threshold = 0.5)
             
             class_id  = to_categorical(class_id, num_classes=self.num_classes)
@@ -364,11 +371,11 @@ class Dataloader(Sequence):
             batch_x.append(image)
             batch_y.append(labels)   
             
-        batch_x = np.array(batch_x, dtype = np.float32)
-        batch_y = np.array(batch_y, dtype = np.float32)
+#        batch_x = np.array(batch_x, dtype = np.float32)
+#        batch_y = np.array(batch_y, dtype = np.float32)
         
         
-        return batch_x, batch_y
+        return (batch_x, batch_y)
             
     
     def on_epoch_end(self):

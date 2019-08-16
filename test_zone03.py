@@ -26,8 +26,8 @@ from keras import backend as K
 
 from SSD_generate_anchors import generate_ssd_priors
 
-from CustomDataLoaderv3 import DataAugmentor as DA1
-from CustomDataLoader import DataAugmentor as DA2
+from CustomDataLoaderTorch import DataAugmentor as DA1
+from CustomDataLoaderTF import DataAugmentor as DA2
 
 from utility import match as match_np
 from utility import decode as decode_np
@@ -45,17 +45,14 @@ import cv2
 import numpy as np
 
 #root                = Path.home()/'data'/'VOCdevkit'/'VOC2007'
-root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'/'VOC2007'
-voc_2007_datafile  = root/'ImageSets'/'Main'/'train.txt'
-
-voc_2007_images      = root/'JPEGImages'
-voc_2007_annotations = root/'Annotations'
+root                 = Path.home()/'Documents'/'DATASETS'/'VOCdevkit'
 
 
 SSDBoxSizes = collections.namedtuple('SSDBoxSizes', ['min', 'max'])
 
 Spec = collections.namedtuple('Spec', ['feature_map_size', 'shrinkage', 'box_sizes', 
                                        'aspect_ratios'])
+
 
 # the SSD orignal specs
 specs = [
@@ -72,25 +69,23 @@ priors = generate_ssd_priors(specs).astype(np.float32)
 
 batch_size = 4
 
-loader_th  = DA1()
-data_th    = loader_th.flow_from_directory(root     = root,
-                                        data_file   = voc_2007_datafile,
-                                        target_size = 300,
-                                        batch_size  = batch_size,
-                                        shuffle     = False,
-                                        num_classes = 21,
-                                        priors      = priors
+loader_th  = DA1(rescale=1/255.0)
+data_th    = loader_th.flow_from_directory(root         = root,
+                                       data_folder  = ['VOC2007', 'VOC2012'],
+                                       target_size  = (300,300),
+                                       batch_size   = batch_size,
+                                       shuffle      = False,
+                                       priors       = priors
                                         )
 
 
-loader_np  = DA2()
-data_np    = loader_np.flow_from_directory(root     = root,
-                                        data_file   = voc_2007_datafile,
-                                        target_size = 300,
-                                        batch_size  = batch_size,
-                                        shuffle     = False,
-                                        num_classes = 21,
-                                        priors      = priors
+loader_np  = DA2(rescale=1/255.0)
+data_np    = loader_np.flow_from_directory(root         = root,
+                                       data_folder  = ['VOC2007', 'VOC2012'],
+                                       target_size  = (300,300),
+                                       batch_size   = batch_size,
+                                       shuffle      = False,
+                                       priors       = priors
                                         )
 
 
@@ -100,7 +95,7 @@ images_np, targets_np = sample_np
 loc_data  = targets_np[:,:,:4]
 conf_data = targets_np[:,:,4:]
 
-a = loc_data[0,:,:]
+a         = loc_data[0,:,:]
 
 decoded_np = decode_np(loc = a, priors=priors, variances=[0.1, 0.2]) 
 
@@ -108,7 +103,7 @@ a_      = torch.from_numpy(a).float()
 priors_ = torch.from_numpy(priors).float()
 
 decoded_th = decode_th(loc = a_, priors=priors_, variances=[0.1, 0.2])
-c = decoded_th.numpy() == decoded_np
+c          = decoded_th.numpy() == decoded_np
 print(np.sum(c))
 
 
@@ -119,5 +114,5 @@ scores_ = torch.from_numpy(scores).float()
 nms_np = non_maximum_supression(boxes = decoded_np, scores= scores, top_k=200, overlap=0.5)
 nms_th = nms(boxes=decoded_th, scores= scores_, overlap=0.5, top_k=200)
 
-print(nms_th[0])
+print(nms_th[0].numpy())
 print(nms_np[0])

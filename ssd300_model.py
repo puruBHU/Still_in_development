@@ -7,7 +7,7 @@ Created on Fri Jul 26 17:12:43 2019
 """
 from keras.models import Model
 from keras.layers import Input, MaxPooling2D, ZeroPadding2D
-from keras.layers import Reshape, Add, Conv2D, Concatenate, Lambda
+from keras.layers import Reshape, Add, Conv2D, Concatenate, Lambda, Activation
 from utility import conv_bn_relu
 from keras import backend as K
 import tensorflow as tf
@@ -125,22 +125,22 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     
     
     # The class confidence score
-    conv4_3_cls_score = Conv2D(filters = anchors[0] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    conv4_3_cls_score = Conv2D(filters = anchors[0] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(conv4_3_norm)
     
-    fc7_cls_score     = Conv2D(filters = anchors[1] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    fc7_cls_score     = Conv2D(filters = anchors[1] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(fc7)
     
-    conv8_2_cls_score  = Conv2D(filters = anchors[2] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    conv8_2_cls_score  = Conv2D(filters = anchors[2] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(conv8_2)
     
-    conv9_2_cls_score  = Conv2D(filters = anchors[3] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    conv9_2_cls_score  = Conv2D(filters = anchors[3] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(conv9_2)
     
-    conv10_2_cls_score  = Conv2D(filters = anchors[4] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    conv10_2_cls_score  = Conv2D(filters = anchors[4] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(conv10_2)
     
-    conv11_2_cls_score  = Conv2D(filters = anchors[5] * num_classes, kernel_size=(3,3), activation = 'softmax',
+    conv11_2_cls_score  = Conv2D(filters = anchors[5] * num_classes, kernel_size=(3,3), activation = 'relu',
                                padding='same')(conv11_2)
     
     # Get the bounding box locations
@@ -181,11 +181,13 @@ def SSD300(input_shape = (None, None, 3), anchors = [4, 6,6,6,4,4], num_classes 
     conv11_2_loc        = Reshape(target_shape = (-1, 4))(conv11_2_loc)
     
     cls_score = Concatenate(axis=1, name = 'classification_score')([conv4_3_cls_score, 
-                                                                       fc7_cls_score,
-                                                                       conv8_2_cls_score,
-                                                                       conv9_2_cls_score,
-                                                                       conv10_2_cls_score,
-                                                                       conv11_2_cls_score])
+                                                                    fc7_cls_score,
+                                                                    conv8_2_cls_score,
+                                                                    conv9_2_cls_score,
+                                                                    conv10_2_cls_score,
+                                                                    conv11_2_cls_score])
+    
+    cls_score = Activation('softmax')(cls_score)
     
     loc      = Concatenate(axis = 1, name = 'regression_layer')([conv4_3_loc,
                                                                   fc7_loc,

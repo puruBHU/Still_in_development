@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 from random import shuffle
-from CustomDataLoaderTesting import DataAugmentor
+from CustomDataLoaderTorch import DataAugmentor
 from SSD_generate_anchors import generate_ssd_priors
 from utility import point_form
 import collections
@@ -39,7 +39,7 @@ priors = generate_ssd_priors(specs)
 loader = DataAugmentor(horizontal_flip=True,
                        )
 
-batch_size = 5
+batch_size = 1
 generator = loader.flow_from_directory(root         = root,
                                        data_folder  = ['VOC2007', 'VOC2012'],
                                        target_size  = (300,300),

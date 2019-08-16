@@ -357,7 +357,7 @@ class Dataloader(Sequence):
             class_id  = to_categorical(class_id, num_classes=self.num_classes)
             
             labels[:,:4] = loc
-            labels[:,4:] = class_id
+            labels[:,4:]  = class_id
             
           
             
